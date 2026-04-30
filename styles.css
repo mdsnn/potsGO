@@ -333,6 +333,12 @@ h1 {
   font-size: clamp(1rem, 2.3vw, 1.3rem);
 }
 
+.scene-eyebrow {
+  color: #f2d447;
+  font-family: "Courier New", monospace;
+  text-transform: uppercase;
+}
+
 .screen-content ul {
   display: grid;
   gap: 8px;
@@ -340,6 +346,85 @@ h1 {
   margin: 0;
   padding-left: 20px;
   font-size: 1.05rem;
+}
+
+.badge-row,
+.link-row {
+  display: flex;
+  max-width: 100%;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.badge-row span,
+.link-row a {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid rgba(215, 255, 228, 0.68);
+  background: rgba(0, 0, 0, 0.32);
+  color: #d7ffe4;
+  font-family: "Courier New", monospace;
+  font-size: 0.85rem;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.link-row a {
+  background: rgba(118, 255, 157, 0.14);
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: min(100%, 620px);
+}
+
+.project-card {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(215, 255, 228, 0.46);
+  background: rgba(0, 0, 0, 0.36);
+}
+
+.project-card strong,
+.project-card small {
+  display: block;
+}
+
+.project-card strong {
+  color: #fff7d1;
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+
+.project-card small {
+  margin: 3px 0 6px;
+  color: #65e8ff;
+  font-family: "Courier New", monospace;
+}
+
+.project-card p {
+  font-size: 0.88rem;
+}
+
+.screen-image {
+  width: min(100%, 610px);
+  margin: 0;
+  border: 2px solid rgba(215, 255, 228, 0.5);
+  background: rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.screen-image img {
+  display: block;
+  width: 100%;
+  max-height: 230px;
+  object-fit: cover;
+  object-position: left top;
+  filter: saturate(0.72) contrast(1.18) sepia(0.14);
 }
 
 .scene-counter {
@@ -599,5 +684,9 @@ h1 {
 
   .vcr-controls {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
   }
 }

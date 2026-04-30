@@ -1,52 +1,67 @@
 const tapes = [
   {
     id: "about",
-    title: "About Me",
-    tag: "A bio trailer",
+    title: "Mwiko",
+    tag: "AI SaaS builder",
     color: "#e93434",
     art: "linear-gradient(135deg, #f2d447, #ff7b54 45%, #312250)",
     tilt: "-1.8deg",
     runtime: "00:47",
     scenes: [
       {
-        heading: "About Me",
-        body: "A quick trailer for the person behind the counter: curious builder, frontend tinkerer, and maker of interactive web oddities.",
+        heading: "Mwiko Sinyangwe",
+        eyebrow: "Full-stack developer in Lusaka",
+        body: "I build AI-powered SaaS products and production business systems, from API design and database modelling to React frontends people can actually use every day.",
+        badges: ["AI SaaS", "React", "FastAPI", "TypeScript", "PostgreSQL"],
         duration: 4200
       },
       {
-        heading: "The Setup",
-        body: "I like interfaces with a pulse: tools that feel useful first, then reward people with little moments of delight.",
+        heading: "The Angle",
+        body: "My strongest pattern is owning the full lifecycle: understand the workflow, cut complexity, ship the backend, wire the frontend, and keep improving the product after launch.",
+        list: ["3+ years building production systems", "Currently modernising ZamFIND platforms", "Building Nearby Vibes as an AI-powered local marketplace"],
         duration: 4600
       },
       {
-        heading: "Coming Soon",
-        body: "Replace this copy with your actual bio beats: what you build, what you care about, and the kind of projects people should hire you for.",
+        heading: "Going Forward",
+        body: "I want to work deeper in modern SaaS teams using React on the frontend and Go for fast, reliable backend services, while keeping AI agents and automation close to the product core.",
+        badges: ["React apps", "Go backends", "AI agents", "SaaS workflows"],
         duration: 5000
       }
     ]
   },
   {
     id: "projects",
-    title: "Projects",
-    tag: "Live demo shelf",
+    title: "AI SaaS",
+    tag: "Project reel",
     color: "#1154a4",
     art: "linear-gradient(135deg, #65e8ff, #1154a4 50%, #10131d)",
     tilt: "1.1deg",
     runtime: "01:23",
     scenes: [
       {
-        heading: "Projects",
-        list: ["Interactive portfolio systems", "Tiny games and motion experiments", "Design-forward tools that feel tactile"],
+        heading: "Nearby Vibes",
+        eyebrow: "FastAPI - React PWA - Claude - PostgreSQL",
+        body: "AI-powered F&B operating system and local marketplace for Lusaka, connecting buyers with restaurants, butcheries, bakeries, bars, grocers, and farm shops.",
+        list: ["Zara buyer concierge and Keza seller partner", "Claude tool-use with tiered tools and SSE streaming", "pgvector semantic memory for preferences and order history"],
         duration: 4400
       },
       {
-        heading: "Highlight Reel",
-        body: "Fast-forward jumps through project cards, live embeds, or mini playable scenes once your real work is wired in.",
-        duration: 4600
+        heading: "Agent OS",
+        body: "The interesting part is not just chat. Nearby Vibes has scheduled jobs, proactive nudges, nightly business intelligence, planning flows, Telegram bots, and real-time order management.",
+        badges: ["APScheduler", "WebSockets", "Prompt caching", "Mobile money", "Telegram Bot API"],
+        duration: 5200
       },
       {
-        heading: "Demo Slot",
-        body: "This scene can become an embedded prototype, a case-study clip, or a tiny playable sample from a featured project.",
+        heading: "GitHub Shelf",
+        body: "Pinned repos show a TypeScript-first habit around practical SaaS building blocks.",
+        cards: [
+          { title: "pulse", meta: "TypeScript", body: "Real-time analytics dashboard foundation." },
+          { title: "taskflow", meta: "TypeScript", body: "Task and workflow management app." },
+          { title: "ai-form-builder", meta: "TypeScript", body: "AI-assisted dynamic form generation." },
+          { title: "csv-importer", meta: "TypeScript", body: "CSV validation, mapping, and import flow." },
+          { title: "invoice-generator", meta: "TypeScript", body: "PDF invoice generation tool." },
+          { title: "marketplace", meta: "TypeScript", body: "E-commerce marketplace template." }
+        ],
         duration: 5200
       }
     ]
@@ -62,12 +77,17 @@ const tapes = [
     scenes: [
       {
         heading: "Contact",
-        body: "Drop your email, socials, calendar link, or a fake receipt printer form here. No backend needed for the first version.",
+        body: "Available for AI SaaS product work, React builds, backend API work, and production system modernisation.",
+        links: [
+          { label: "Email Mwiko", href: "mailto:mwikosinyangwe@gmail.com" },
+          { label: "GitHub", href: "https://github.com/mdsnn" }
+        ],
         duration: 4200
       },
       {
         heading: "Receipt",
-        body: "Rental fee: one good conversation. Late fee: answering emails three weeks later.",
+        body: "Best fit: teams building SaaS workflows, AI-assisted tools, marketplaces, internal platforms, dashboards, or systems that need to move from legacy code into a cleaner modern stack.",
+        badges: ["Lusaka, Zambia", "Remote-friendly", "Full-stack"],
         duration: 4800
       }
     ]
@@ -83,12 +103,12 @@ const tapes = [
     scenes: [
       {
         heading: "After Hours",
-        body: "Late-night notes, essays, build logs, and the strange little ideas that do not fit anywhere else.",
+        body: "Use this tape for build notes: AI agent design, SaaS lessons, React patterns, API design, Postgres tricks, and the road from FastAPI-heavy systems toward Go services.",
         duration: 4400
       },
       {
         heading: "Staff Picks",
-        list: ["What made the build weird", "Favorite UI details", "Stuff learned while making it"],
+        list: ["How I built agent memory with pgvector", "What prompt caching changed in production cost", "Migrating legacy business systems without breaking daily operations", "React + Go notes as I move deeper into Go backends"],
         duration: 5200
       }
     ]
@@ -121,18 +141,30 @@ const tapes = [
     scenes: [
       {
         heading: "Resume",
-        list: ["Experience goes here", "Selected skills go here", "Download link can become a big tracking-warp button"],
+        body: "Self-taught full-stack developer with 3+ years building production systems. Strongest work: AI SaaS products, API-first platforms, React frontends, and PostgreSQL-backed business systems.",
+        links: [
+          { label: "Download Resume", href: "assets/mwiko-resume.docx" },
+          { label: "GitHub Profile", href: "https://github.com/mdsnn" }
+        ],
         duration: 4400
       },
       {
-        heading: "Skills",
-        list: ["Frontend architecture", "Motion and interaction design", "Playable web experiences"],
+        heading: "Production Work",
+        body: "At ZamFIND Technology, I am leading a platform migration from legacy PHP/Rails-era systems toward FastAPI, React, TypeScript, and PostgreSQL.",
+        list: ["FastAPI backend with Pydantic validation and OpenAPI", "React + TypeScript frontend with typed API layer", "RBAC, analytics, inventory, accounting, events, and reporting modules"],
         duration: 4600
       },
       {
-        heading: "Now Hiring?",
-        body: "Turn this scene into a resume download, client pitch, or availability note with a very dramatic tape wobble.",
+        heading: "Technical Stack",
+        list: ["Primary: React, TypeScript, FastAPI, PostgreSQL", "AI: Claude API, tool-use, prompt engineering, pgvector, XGBoost", "Backend direction: Go services, API design, real-time systems, clean product infrastructure"],
         duration: 5000
+      },
+      {
+        heading: "GitHub Proof",
+        body: "Your profile already supports the positioning: active TypeScript repos, visible contribution history, and pinned projects that map to SaaS product primitives.",
+        image: "assets/github-profile.png",
+        imageAlt: "Screenshot of Mwiko Sinyangwe's GitHub profile",
+        duration: 5600
       }
     ]
   }
@@ -217,15 +249,31 @@ function renderScene(state = mode) {
   }
 
   const scene = currentTape.scenes[currentScene] || currentTape.scenes[0];
+  const eyebrow = scene.eyebrow ? `<p class="scene-eyebrow">${scene.eyebrow}</p>` : "";
   const list = scene.list ? `<ul>${scene.list.map((item) => `<li>${item}</li>`).join("")}</ul>` : "";
   const body = scene.body ? `<p>${scene.body}</p>` : "";
+  const badges = scene.badges ? `<div class="badge-row">${scene.badges.map((badge) => `<span>${badge}</span>`).join("")}</div>` : "";
+  const links = scene.links ? `<div class="link-row">${scene.links.map((link) => `<a href="${link.href}" target="_blank" rel="noreferrer">${link.label}</a>`).join("")}</div>` : "";
+  const cards = scene.cards ? `<div class="card-grid">${scene.cards.map((card) => `
+    <article class="project-card">
+      <strong>${card.title}</strong>
+      <small>${card.meta}</small>
+      <p>${card.body}</p>
+    </article>
+  `).join("")}</div>` : "";
+  const image = scene.image ? `<figure class="screen-image"><img src="${scene.image}" alt="${scene.imageAlt || ""}"></figure>` : "";
   const label = state === "loaded" ? "Press play on the VCR." : state.toUpperCase();
   updateTransportDisplay(state);
   screenContent.innerHTML = `
     <p class="kicker">${label}</p>
+    ${eyebrow}
     <h2>${scene.heading}</h2>
     ${body}
     ${list}
+    ${badges}
+    ${cards}
+    ${links}
+    ${image}
     <p class="scene-counter">${currentScene + 1} / ${currentTape.scenes.length}</p>
   `;
 }
