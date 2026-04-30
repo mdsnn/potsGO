@@ -13,40 +13,64 @@
     <main class="store-shell">
       <section class="marquee" aria-label="Store header">
         <div>
-          <p class="kicker">AI SaaS App Builder - React - FastAPI - Go Next</p>
-          <h1>Mwiko Video Club</h1>
+          <p class="kicker">AI SaaS App Builder · React · FastAPI · Go Next</p>
+          <h1>Mwiko<br>Video Club</h1>
         </div>
         <div class="clock">
-          <span id="storeTime">09:47 PM</span>
+          <span id="storeTime" aria-live="polite" aria-label="Store time">09:47 PM</span>
           <small>After hours</small>
         </div>
       </section>
 
       <section class="store-grid">
-        <aside class="shelf-zone" aria-label="VHS shelves">
+        <!-- ── SHELF ZONE ── -->
+        <aside class="shelf-zone" aria-label="VHS tape shelves">
           <div class="aisle-sign">
             <span>New Releases</span>
-            <button id="ambienceToggle" class="icon-button" type="button" aria-label="Toggle store ambience" title="Toggle store ambience">♪</button>
+            <button
+              id="ambienceToggle"
+              class="icon-button"
+              type="button"
+              aria-label="Toggle store ambience audio"
+              aria-pressed="false"
+              title="Toggle store ambience"
+            >♪ AUDIO</button>
           </div>
 
-          <div class="staff-pick">
+          <!-- Staff pick updates dynamically when a tape is rented -->
+          <div class="staff-pick" id="staffPick" aria-live="polite">
             <span>Staff Pick</span>
-            <strong>AI SaaS builder with production proof.</strong>
-            <p>React frontends, API-first backends, AI agents, and business systems that survive real daily use.</p>
+            <strong id="staffPickTitle">AI SaaS builder with production proof.</strong>
+            <p id="staffPickBody">React frontends, API-first backends, AI agents, and business systems that survive real daily use.</p>
           </div>
 
-          <div id="tapeShelf" class="tape-shelf" aria-label="Choose a tape"></div>
+          <div
+            id="tapeShelf"
+            class="tape-shelf"
+            role="list"
+            aria-label="Choose a tape to rent"
+          >
+            <!-- Loading placeholder removed by renderShelf() -->
+            <p class="shelf-loading" aria-live="polite">Loading tapes…</p>
+          </div>
 
-          <div class="counter">
+          <div class="counter" role="status">
             <p id="clerkLine">Pick a tape. Rewind before returning. No exceptions.</p>
-            <div id="lateFee" class="late-fee" aria-live="polite"></div>
+            <div id="lateFee" class="late-fee" aria-live="assertive" aria-atomic="true"></div>
           </div>
         </aside>
 
+        <!-- ── PLAYER ZONE ── -->
         <section class="player-zone" aria-label="VCR player">
           <div class="tv">
-            <div id="trackingLabel" class="tracking-label">TRACKING</div>
-            <div id="screen" class="screen paused">
+            <div id="trackingLabel" class="tracking-label" aria-live="polite" aria-label="Tracking level">TRACKING 3</div>
+            <div
+              id="screen"
+              class="screen paused"
+              role="region"
+              aria-label="Video screen"
+              aria-live="polite"
+            >
               <div id="screenContent" class="screen-content">
                 <p class="standby">NO TAPE</p>
                 <p class="standby-small">Browse the shelf and rent something weird.</p>
@@ -54,14 +78,26 @@
             </div>
           </div>
 
-          <div class="vcr">
+          <div class="vcr" role="group" aria-label="VCR controls">
             <div class="vcr-top">
-              <div class="brand">VIDEOMATIC 4000</div>
-              <div id="vcrDisplay" class="vcr-display">--:--</div>
+              <div class="brand" aria-hidden="true">VIDEOMATIC 4000</div>
+              <div
+                id="vcrDisplay"
+                class="vcr-display"
+                aria-live="polite"
+                aria-label="VCR status display"
+              >--:--</div>
             </div>
-            <div id="vcrSlot" class="vcr-slot">
-              <span id="slotLabel">INSERT TAPE</span>
+
+            <div
+              id="vcrSlot"
+              class="vcr-slot"
+              role="status"
+              aria-label="Tape slot"
+            >
+              <span id="slotLabel" aria-hidden="true">INSERT TAPE</span>
             </div>
+
             <div class="tape-window" aria-hidden="true">
               <div id="leftReel" class="reel left-reel"></div>
               <div class="tape-track">
@@ -69,26 +105,29 @@
               </div>
               <div id="rightReel" class="reel right-reel"></div>
             </div>
-            <div class="vcr-controls" aria-label="VCR controls">
-              <button id="playBtn" type="button">Play</button>
-              <button id="pauseBtn" type="button">Pause</button>
-              <button id="rewindBtn" type="button">Rewind</button>
-              <button id="ffBtn" type="button">Fast Fwd</button>
-              <button id="ejectBtn" type="button">Eject</button>
+
+            <div class="vcr-controls" role="group" aria-label="Transport controls">
+              <button id="playBtn"   type="button" aria-label="Play">▶ Play</button>
+              <button id="pauseBtn"  type="button" aria-label="Pause">⏸ Pause</button>
+              <button id="rewindBtn" type="button" aria-label="Rewind">◀◀ Rew</button>
+              <button id="ffBtn"     type="button" aria-label="Fast forward">FF ▶▶</button>
+              <button id="ejectBtn"  type="button" aria-label="Eject tape">⏏ Eject</button>
             </div>
-            <div class="tracking-controls" aria-label="Tracking controls">
-              <button id="trackingDownBtn" type="button">TRK -</button>
-              <button id="trackingUpBtn" type="button">TRK +</button>
+
+            <div class="tracking-controls" role="group" aria-label="Tracking adjustment">
+              <button id="trackingDownBtn" type="button" aria-label="Decrease tracking">TRK −</button>
+              <button id="trackingUpBtn"   type="button" aria-label="Increase tracking">TRK +</button>
             </div>
           </div>
         </section>
       </section>
     </main>
 
+    <!-- Tape card template -->
     <template id="tapeTemplate">
-      <button class="tape" type="button">
-        <span class="tape-spine"></span>
-        <span class="tape-cover">
+      <button class="tape" type="button" role="listitem">
+        <span class="tape-spine" aria-hidden="true"></span>
+        <span class="tape-cover" aria-hidden="true">
           <span class="tape-sticker"></span>
           <strong></strong>
           <small></small>
