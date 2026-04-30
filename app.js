@@ -139,19 +139,19 @@ const tapes = [
   },
   {
     id: "game",
-    title: "Late Fee Panic",
+    title: "Rewind Race",
     tag: "Bonus mini-game",
     color: "#f2d447",
     art: "linear-gradient(135deg, #f2d447, #e93434 50%, #11131b)",
     tilt: "0.5deg",
     runtime: "00:15",
     game: true,
-    staffTitle: "Can you return it in time?",
-    staffBody: "Stop the meter inside the green zone. The clerk is watching. Or not. Hard to tell.",
+    staffTitle: "Stop the counter on 00:00 or the tape snaps.",
+    staffBody: "Hit STOP at exactly the right moment. Too early, too late — both cost you. Three lives. No mercy.",
     scenes: [
       {
-        heading: "Late Fee Panic",
-        body: "Stop the meter inside the green zone to return the tape before the clerk notices.",
+        heading: "Rewind Race",
+        body: "Hit STOP before the counter hits zero. Miss the window and the tape snaps.",
         duration: 1000
       }
     ]
@@ -244,14 +244,12 @@ const controls = {
 let currentTape    = null;
 let currentScene   = 0;
 let mode           = "empty";
-let lastUserAction = Date.now(); // only updated by user interactions, not by checkLateFee
+let lastUserAction = Date.now();
 let fee            = 0;
 let audioContext   = null;
 let ambienceNode   = null;
 let ambienceGain   = null;
 let gameTimer      = null;
-let gameValue      = 0;
-let gameDirection  = 1;
 let playbackTimer  = null;
 let trackingLevel  = 3;
 let tapeEnded      = false;
@@ -260,7 +258,6 @@ let tapeEnded      = false;
    SHELF RENDER
 ───────────────────────────────────────── */
 function renderShelf() {
-  // Remove loading placeholder
   const placeholder = shelf.querySelector(".shelf-loading");
   if (placeholder) placeholder.remove();
 
@@ -271,16 +268,214 @@ function renderShelf() {
     node.style.setProperty("--cover-art",  tape.art);
     node.style.setProperty("--tilt",       tape.tilt);
 
-    // Text content via DOM properties — not innerHTML — avoids any XSS risk
     node.querySelector("strong").textContent = tape.title;
     node.querySelector("small").textContent  = tape.tag;
-
-    // Accessible label for screen readers
     node.setAttribute("aria-label", `${tape.title} — ${tape.tag}. Runtime: ${tape.runtime}.`);
 
+    // Click to rent (kept alongside drag)
     node.addEventListener("click", () => rentTape(tape.id));
+
+    // ── HTML5 Drag ──
+    node.setAttribute("draggable", "true");
+    node.addEventListener("dragstart", onTapeDragStart);
+    node.addEventListener("dragend",   onTapeDragEnd);
+
+    // ── Touch Drag ──
+    node.addEventListener("touchstart", onTouchStart, { passive: false });
+
     shelf.appendChild(node);
   });
+}
+
+/* ─────────────────────────────────────────
+   DRAG & DROP — HTML5
+───────────────────────────────────────── */
+let dragGhost = null;   // detached ghost node
+let draggingId = null;  // tape id being dragged
+
+function onTapeDragStart(e) {
+  const node = e.currentTarget;
+  draggingId = node.dataset.id;
+  node.classList.add("dragging");
+
+  // Custom ghost: clone the tape card, shrink it slightly
+  dragGhost = node.cloneNode(true);
+  dragGhost.style.cssText = `
+    position: fixed;
+    top: -999px;
+    left: -999px;
+    width: ${node.offsetWidth}px;
+    transform: rotate(-3deg) scale(0.88);
+    pointer-events: none;
+    opacity: 0.92;
+    z-index: 9999;
+    border-radius: 2px;
+  `;
+  // Preserve custom properties on the ghost
+  dragGhost.style.setProperty("--tape-color", node.style.getPropertyValue("--tape-color"));
+  dragGhost.style.setProperty("--cover-art",  node.style.getPropertyValue("--cover-art"));
+  dragGhost.style.setProperty("--tilt", "0deg");
+
+  document.body.appendChild(dragGhost);
+  e.dataTransfer.setDragImage(dragGhost, dragGhost.offsetWidth / 2, 30);
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/plain", draggingId);
+}
+
+function onTapeDragEnd(e) {
+  const node = e.currentTarget;
+  node.classList.remove("dragging");
+
+  // Remove ghost
+  if (dragGhost) {
+    dragGhost.remove();
+    dragGhost = null;
+  }
+
+  // If drop didn't land on the slot, animate snap-back
+  if (e.dataTransfer.dropEffect === "none") {
+    animateSnapBack(node);
+  }
+
+  draggingId = null;
+}
+
+function animateSnapBack(node) {
+  // Brief "bounce" class — you can add a @keyframes snapBack in CSS if you like
+  node.style.transition = "transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)";
+  node.style.transform  = "translateY(-12px) rotate(0deg)";
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      node.style.transform  = "";
+      node.style.transition = "";
+    }, 300);
+  });
+}
+
+/* ─── VCR Slot as drop target ─── */
+vcrSlot.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+  vcrSlot.classList.add("drag-over");
+});
+
+vcrSlot.addEventListener("dragleave", (e) => {
+  // Only remove highlight if leaving the slot entirely
+  if (!vcrSlot.contains(e.relatedTarget)) {
+    vcrSlot.classList.remove("drag-over");
+  }
+});
+
+vcrSlot.addEventListener("drop", (e) => {
+  e.preventDefault();
+  vcrSlot.classList.remove("drag-over");
+
+  const id = e.dataTransfer.getData("text/plain") || draggingId;
+  if (id) {
+    // Mark the drop as accepted so dragend doesn't snap back
+    e.dataTransfer.dropEffect = "move";
+    rentTape(id);
+  }
+});
+
+/* ─── Also allow dragging the slot label out to eject ─── */
+vcrSlot.setAttribute("draggable", "false"); // slot itself is not a draggable source
+// (Eject-by-drag would need the loaded tape slug as the draggable — added below in rentTape)
+
+/* ─────────────────────────────────────────
+   DRAG & DROP — TOUCH (mobile fallback)
+───────────────────────────────────────── */
+let touchDragId    = null;
+let touchClone     = null;
+let touchOffsetX   = 0;
+let touchOffsetY   = 0;
+
+function onTouchStart(e) {
+  if (e.touches.length !== 1) return;
+
+  const node   = e.currentTarget;
+  touchDragId  = node.dataset.id;
+  const touch  = e.touches[0];
+  const rect   = node.getBoundingClientRect();
+
+  touchOffsetX = touch.clientX - rect.left;
+  touchOffsetY = touch.clientY - rect.top;
+
+  // Clone to follow finger
+  touchClone = node.cloneNode(true);
+  touchClone.style.cssText = `
+    position: fixed;
+    width: ${rect.width}px;
+    left: ${rect.left}px;
+    top: ${rect.top}px;
+    transform: rotate(-3deg) scale(0.9);
+    pointer-events: none;
+    opacity: 0.88;
+    z-index: 9999;
+    transition: none;
+  `;
+  touchClone.style.setProperty("--tape-color", node.style.getPropertyValue("--tape-color"));
+  touchClone.style.setProperty("--cover-art",  node.style.getPropertyValue("--cover-art"));
+  touchClone.style.setProperty("--tilt", "0deg");
+  document.body.appendChild(touchClone);
+
+  node.classList.add("dragging");
+
+  document.addEventListener("touchmove",  onTouchMove,  { passive: false });
+  document.addEventListener("touchend",   onTouchEnd);
+  document.addEventListener("touchcancel",onTouchEnd);
+}
+
+function onTouchMove(e) {
+  e.preventDefault();
+  if (!touchClone) return;
+
+  const touch = e.touches[0];
+  touchClone.style.left = `${touch.clientX - touchOffsetX}px`;
+  touchClone.style.top  = `${touch.clientY - touchOffsetY}px`;
+
+  // Highlight slot if finger is over it
+  const slotRect = vcrSlot.getBoundingClientRect();
+  const over = (
+    touch.clientX >= slotRect.left &&
+    touch.clientX <= slotRect.right &&
+    touch.clientY >= slotRect.top  &&
+    touch.clientY <= slotRect.bottom
+  );
+  vcrSlot.classList.toggle("drag-over", over);
+}
+
+function onTouchEnd(e) {
+  document.removeEventListener("touchmove",  onTouchMove);
+  document.removeEventListener("touchend",   onTouchEnd);
+  document.removeEventListener("touchcancel",onTouchEnd);
+
+  vcrSlot.classList.remove("drag-over");
+
+  if (touchClone) {
+    const touch    = e.changedTouches[0];
+    const slotRect = vcrSlot.getBoundingClientRect();
+    const dropped  = (
+      touch.clientX >= slotRect.left &&
+      touch.clientX <= slotRect.right &&
+      touch.clientY >= slotRect.top  &&
+      touch.clientY <= slotRect.bottom
+    );
+
+    touchClone.remove();
+    touchClone = null;
+
+    // Restore source tape appearance
+    const sourceNode = shelf.querySelector(`[data-id="${touchDragId}"]`);
+    if (sourceNode) {
+      sourceNode.classList.remove("dragging");
+      if (!dropped) animateSnapBack(sourceNode);
+    }
+
+    if (dropped && touchDragId) rentTape(touchDragId);
+  }
+
+  touchDragId = null;
 }
 
 /* ─────────────────────────────────────────
@@ -300,7 +495,6 @@ function rentTape(id) {
     node.classList.toggle("rented", node.dataset.id === id);
   });
 
-  // Slot animation: remove then re-add so it re-triggers
   vcrSlot.classList.remove("loaded");
   requestAnimationFrame(() => vcrSlot.classList.add("loaded"));
   slotLabel.textContent = currentTape.title.toUpperCase();
@@ -308,7 +502,6 @@ function rentTape(id) {
   vcrDisplay.textContent = currentTape.runtime;
   clerkLine.textContent  = `"${currentTape.title}" is due back by midnight.`;
 
-  // Update staff pick to match rented tape
   updateStaffPick(currentTape);
 
   screen.className = "screen paused has-content";
@@ -337,32 +530,25 @@ function renderScene(state = mode) {
   if (!currentTape) {
     screenContent.innerHTML = `
       <p class="standby">NO TAPE</p>
-      <p class="standby-small">Browse the shelf and rent something weird.</p>`;
+      <p class="standby-small">Drag a tape to the VCR slot, or click one to rent it.</p>`;
     return;
   }
 
   if (currentTape.game && state === "playing") {
-    renderGame();
+    renderRewindRace();
     return;
   }
 
   const scene = currentTape.scenes[currentScene] || currentTape.scenes[0];
 
-  // Build HTML fragments safely for known-safe data fields.
-  // All text content comes from our own tapes array so innerHTML is acceptable here;
-  // links are validated below before being assigned to .href.
   const eyebrow = scene.eyebrow
     ? `<p class="scene-eyebrow">${escHtml(scene.eyebrow)}</p>` : "";
-
   const body = scene.body
     ? `<p>${escHtml(scene.body)}</p>` : "";
-
   const list = scene.list
     ? `<ul>${scene.list.map((item) => `<li>${escHtml(item)}</li>`).join("")}</ul>` : "";
-
   const badges = scene.badges
     ? `<div class="badge-row">${scene.badges.map((b) => `<span>${escHtml(b)}</span>`).join("")}</div>` : "";
-
   const cards = scene.cards
     ? `<div class="card-grid">${scene.cards.map((card) => `
         <article class="project-card">
@@ -370,13 +556,9 @@ function renderScene(state = mode) {
           <small>${escHtml(card.meta)}</small>
           <p>${escHtml(card.body)}</p>
         </article>`).join("")}</div>` : "";
-
   const image = scene.image
     ? `<figure class="screen-image"><img src="${escAttr(scene.image)}" alt="${escAttr(scene.imageAlt || "")}"></figure>` : "";
-
-  // Links: build anchors via DOM to keep href safe
-  const linksHtml = scene.links
-    ? buildLinks(scene.links) : "";
+  const linksHtml = scene.links ? buildLinks(scene.links) : "";
 
   const label = state === "loaded" ? "Press play on the VCR." : state.toUpperCase();
   updateTransportDisplay(state);
@@ -394,23 +576,20 @@ function renderScene(state = mode) {
     <p class="scene-counter">${currentScene + 1} / ${currentTape.scenes.length}</p>`;
 }
 
-/* Build link row safely using DOM — href is set as a property, not via innerHTML */
 function buildLinks(links) {
   const row = document.createElement("div");
   row.className = "link-row";
   links.forEach((link) => {
     const a = document.createElement("a");
-    a.href   = link.href;            // property assignment, not attribute string injection
+    a.href   = link.href;
     a.target = "_blank";
     a.rel    = "noreferrer noopener";
     a.textContent = link.label;
     row.appendChild(a);
   });
-  // Return the outer HTML of the safely-built element
   return row.outerHTML;
 }
 
-/* Minimal HTML escape for text node insertion */
 function escHtml(str) {
   return String(str)
     .replace(/&/g, "&amp;")
@@ -486,7 +665,6 @@ function setMode(nextMode) {
   }
 }
 
-/* Highlight the active transport button */
 function setTransportActive(activeBtn) {
   [controls.play, controls.pause, controls.rewind, controls.fast].forEach((btn) => {
     btn.classList.remove("transport-active");
@@ -545,7 +723,6 @@ function startPlayback() {
       return;
     }
 
-    // End of tape
     mode      = "paused";
     tapeEnded = true;
     screen.classList.remove("playing");
@@ -581,13 +758,11 @@ function updateTransportDisplay(state) {
     updateTapeProgress();
     return;
   }
-
   if (state === "loaded") {
     vcrDisplay.textContent = currentTape.runtime;
     updateTapeProgress();
     return;
   }
-
   const sceneNumber = String(currentScene + 1).padStart(2, "0");
   const sceneTotal  = String(currentTape.scenes.length).padStart(2, "0");
   const labels = { playing: "PLAY", paused: "PAUS", rewinding: "REW", "fast-forward": "FF" };
@@ -596,12 +771,12 @@ function updateTransportDisplay(state) {
 }
 
 function updateTapeProgress(forcedProgress) {
-  const progress    = typeof forcedProgress === "number" ? forcedProgress : getTapeProgress();
-  const leftScale   = 1 - progress * 0.44;
-  const rightScale  = 0.56 + progress * 0.44;
-  tapeProgress.style.width          = `${Math.round(progress * 100)}%`;
-  leftReel.style.transform          = `scale(${leftScale})`;
-  rightReel.style.transform         = `scale(${rightScale})`;
+  const progress   = typeof forcedProgress === "number" ? forcedProgress : getTapeProgress();
+  const leftScale  = 1 - progress * 0.44;
+  const rightScale = 0.56 + progress * 0.44;
+  tapeProgress.style.width  = `${Math.round(progress * 100)}%`;
+  leftReel.style.transform  = `scale(${leftScale})`;
+  rightReel.style.transform = `scale(${rightScale})`;
 }
 
 function getTapeProgress() {
@@ -627,58 +802,386 @@ function applyTracking() {
 }
 
 /* ─────────────────────────────────────────
-   MINI-GAME
+   REWIND RACE — MINI-GAME
+   ─────────────────────────────────────────
+   Three rounds. Each round: a counter races toward 00:00.
+   Speed increases each round. Hit STOP in the danger zone
+   (the last 3 seconds) without hitting 00:00 or the tape
+   snaps and you lose a life.
+   Score 3 perfect stops → trophy. Lose all lives → game over.
 ───────────────────────────────────────── */
-function renderGame() {
-  stopGame();
-  updateTransportDisplay("playing");
-  gameValue     = 8;
-  gameDirection = 1;
+const GAME_ROUNDS   = 3;        // rounds per session
+const STOP_ZONE_SEC = 3;        // seconds before 00:00 that count as "good"
+const START_SECS    = [18, 14, 10]; // counter starts for each round (gets faster)
+const TICK_MS       = [100, 80, 55]; // tick intervals per round (faster = harder)
 
-  screenContent.innerHTML = `
-    <div class="mini-game">
-      <p class="kicker">BONUS GAME</p>
-      <h2>Late Fee Panic</h2>
-      <p>Return the tape when the meter lands in the green zone.</p>
-      <div class="meter" role="progressbar" aria-label="Return timing meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="8">
-        <span id="gameMeter"></span>
-      </div>
-      <div class="action-row">
-        <button id="returnBtn" type="button">Return Tape</button>
-        <button id="resetGameBtn" type="button">Reset</button>
-      </div>
-      <p id="gameResult" aria-live="assertive">The clerk is looking away. Move.</p>
-    </div>`;
-
-  const meter  = document.querySelector("#gameMeter");
-  const result = document.querySelector("#gameResult");
-  const meterEl = document.querySelector(".meter");
-
-  gameTimer = window.setInterval(() => {
-    gameValue += gameDirection * 4;
-    if (gameValue >= 100 || gameValue <= 0) gameDirection *= -1;
-    meter.style.setProperty("--meter", `${gameValue}%`);
-    meterEl.setAttribute("aria-valuenow", Math.round(gameValue));
-  }, 80);
-
-  document.querySelector("#returnBtn").addEventListener("click", () => {
-    const win = gameValue >= 42 && gameValue <= 62;
-    result.textContent = win
-      ? "Perfect return. The late fee has vanished."
-      : "Too slow. The clerk stamps your receipt with menace.";
-    fee = win ? 0 : fee + 1;
-    lateFee.textContent = win ? "" : `LATE FEE: $${fee}.97`;
-    beep(win ? "play" : "error");
-  });
-
-  document.querySelector("#resetGameBtn").addEventListener("click", renderGame);
-}
+let rrRound    = 0;
+let rrLives    = 3;
+let rrScore    = 0;
+let rrCounter  = 0;   // tenths of a second remaining
+let rrInterval = null;
+let rrActive   = false;
 
 function stopGame() {
-  if (gameTimer) {
-    window.clearInterval(gameTimer);
-    gameTimer = null;
+  rrActive = false;
+  if (gameTimer) { window.clearInterval(gameTimer); gameTimer = null; }
+  if (rrInterval) { window.clearInterval(rrInterval); rrInterval = null; }
+}
+
+function renderRewindRace() {
+  stopGame();
+  updateTransportDisplay("playing");
+
+  rrRound  = 0;
+  rrLives  = 3;
+  rrScore  = 0;
+  rrActive = true;
+
+  screenContent.innerHTML = `
+    <div class="rr-game">
+      <p class="kicker">BONUS GAME — REWIND RACE</p>
+      <h2 style="font-size:clamp(1.6rem,4vw,2.8rem)">Stop the Tape</h2>
+      <p style="font-size:0.95rem">Hit STOP inside the danger zone before the counter hits 00:00. Miss it and the tape snaps.</p>
+
+      <div class="rr-display-row">
+        <div class="rr-counter-box" id="rrCounter">00:18</div>
+        <div class="rr-lives" id="rrLives">♥ ♥ ♥</div>
+      </div>
+
+      <div class="rr-track-wrap" aria-hidden="true">
+        <div class="rr-track" id="rrTrack">
+          <div class="rr-zone" id="rrZone"></div>
+          <div class="rr-needle" id="rrNeedle"></div>
+        </div>
+        <div class="rr-track-labels">
+          <span>START</span>
+          <span id="rrZoneLabel">STOP ZONE</span>
+          <span>00:00 💀</span>
+        </div>
+      </div>
+
+      <div class="rr-round-label" id="rrRoundLabel">ROUND 1 OF ${GAME_ROUNDS}</div>
+
+      <div class="action-row">
+        <button id="rrStopBtn" type="button" class="rr-stop-btn">⏹ STOP</button>
+      </div>
+      <p id="rrResult" class="rr-result" aria-live="assertive"></p>
+    </div>`;
+
+  injectRRStyles();
+  startRRRound();
+
+  document.querySelector("#rrStopBtn").addEventListener("click", onRRStop);
+}
+
+function injectRRStyles() {
+  // Only inject once per page
+  if (document.querySelector("#rr-styles")) return;
+  const s = document.createElement("style");
+  s.id = "rr-styles";
+  s.textContent = `
+    .rr-game {
+      display: grid;
+      gap: 18px;
+      width: min(480px, 100%);
+    }
+    .rr-display-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .rr-counter-box {
+      font-family: "Courier New", monospace;
+      font-size: clamp(2.2rem, 6vw, 3.5rem);
+      color: var(--green);
+      letter-spacing: 0.08em;
+      background: rgba(0,0,0,0.5);
+      border: 2px solid rgba(118,255,157,0.4);
+      padding: 6px 16px;
+      transition: color 200ms ease, border-color 200ms ease;
+    }
+    .rr-counter-box.danger {
+      color: #ff5555;
+      border-color: rgba(255,85,85,0.6);
+      animation: rrPulse 400ms steps(2,end) infinite;
+    }
+    @keyframes rrPulse {
+      0%  { opacity: 1; }
+      50% { opacity: 0.55; }
+    }
+    .rr-lives {
+      font-size: 1.4rem;
+      letter-spacing: 0.15em;
+      color: #ff5caa;
+      font-family: "Courier New", monospace;
+    }
+    .rr-track-wrap {
+      display: grid;
+      gap: 4px;
+    }
+    .rr-track {
+      position: relative;
+      height: 28px;
+      border: 2px solid rgba(215,255,228,0.4);
+      background: rgba(0,0,0,0.45);
+      overflow: hidden;
+    }
+    .rr-zone {
+      position: absolute;
+      top: 0; bottom: 0;
+      right: 0;
+      background: rgba(233, 52, 52, 0.32);
+      border-left: 2px solid rgba(255,80,80,0.8);
+      transition: background 180ms ease;
+    }
+    .rr-needle {
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 3px;
+      background: var(--gold);
+      box-shadow: 0 0 8px rgba(242,212,71,0.8);
+      transition: left 90ms linear;
+    }
+    .rr-track-labels {
+      display: flex;
+      justify-content: space-between;
+      font-family: "Courier New", monospace;
+      font-size: 0.68rem;
+      color: rgba(215,255,228,0.6);
+    }
+    .rr-round-label {
+      font-family: "Courier New", monospace;
+      font-size: 0.8rem;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .rr-stop-btn {
+      width: fit-content;
+      min-height: 48px;
+      padding: 10px 28px;
+      border: 3px solid #d7ffe4;
+      background: #0d2218;
+      color: #d7ffe4;
+      cursor: pointer;
+      text-transform: uppercase;
+      font-weight: 900;
+      font-size: 1rem;
+      letter-spacing: 0.06em;
+      transition: background 100ms ease, transform 80ms ease;
+    }
+    .rr-stop-btn:hover { background: #1a3a28; }
+    .rr-stop-btn:active { transform: translateY(2px); }
+    .rr-stop-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .rr-result {
+      font-family: "Courier New", monospace;
+      font-size: 0.95rem;
+      min-height: 24px;
+      color: #d7ffe4;
+    }
+    .rr-result.win  { color: var(--green); }
+    .rr-result.lose { color: #ff5555; }
+    .rr-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      background: var(--gold);
+      color: var(--ink);
+      font-size: 0.8rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      animation: sceneFadeIn 400ms ease;
+    }
+  `;
+  document.head.appendChild(s);
+}
+
+function startRRRound() {
+  const startSecs = START_SECS[Math.min(rrRound, START_SECS.length - 1)];
+  const tickMs    = TICK_MS[Math.min(rrRound, TICK_MS.length - 1)];
+
+  rrCounter = startSecs * 10; // store in tenths
+  rrActive  = true;
+
+  const roundLabel = document.querySelector("#rrRoundLabel");
+  if (roundLabel) roundLabel.textContent = `ROUND ${rrRound + 1} OF ${GAME_ROUNDS}`;
+
+  const stopBtn = document.querySelector("#rrStopBtn");
+  if (stopBtn) stopBtn.disabled = false;
+
+  const result = document.querySelector("#rrResult");
+  if (result) { result.textContent = ""; result.className = "rr-result"; }
+
+  updateRRDisplay();
+
+  rrInterval = window.setInterval(() => {
+    if (!rrActive) return;
+
+    rrCounter -= 1;
+    updateRRDisplay();
+
+    if (rrCounter <= 0) {
+      // Tape snapped — counter hit zero
+      rrActive = false;
+      window.clearInterval(rrInterval);
+      rrInterval = null;
+      loseLife("The tape snapped. Hit STOP earlier next time.");
+    }
+  }, tickMs);
+}
+
+function onRRStop() {
+  if (!rrActive) return;
+  rrActive = false;
+  window.clearInterval(rrInterval);
+  rrInterval = null;
+
+  const stopBtn = document.querySelector("#rrStopBtn");
+  if (stopBtn) stopBtn.disabled = true;
+
+  const startSecs    = START_SECS[Math.min(rrRound, START_SECS.length - 1)];
+  const totalTenths  = startSecs * 10;
+  const stopZoneTenths = STOP_ZONE_SEC * 10;
+
+  const inZone = rrCounter > 0 && rrCounter <= stopZoneTenths;
+
+  if (inZone) {
+    // Perfect stop
+    rrScore++;
+    beep("play");
+    const result = document.querySelector("#rrResult");
+    if (result) {
+      result.textContent = `Nice stop! ${formatTenths(rrCounter)} left on the clock.`;
+      result.className = "rr-result win";
+    }
+    clerkLine.textContent = "The tape survives. The clerk nods.";
+    lateFee.textContent = "";
+
+    rrRound++;
+    if (rrRound >= GAME_ROUNDS) {
+      // All rounds cleared
+      setTimeout(showRRVictory, 900);
+    } else {
+      setTimeout(startRRRound, 1200);
+    }
+  } else if (rrCounter > stopZoneTenths) {
+    // Stopped too early
+    rrActive = false;
+    beep("error");
+    const result = document.querySelector("#rrResult");
+    if (result) {
+      result.textContent = "Too early — the tape kept rolling. Try again.";
+      result.className = "rr-result lose";
+    }
+    loseLife("Stopped too early.");
   }
+}
+
+function loseLife(msg) {
+  rrLives--;
+  beep("error");
+
+  const livesEl = document.querySelector("#rrLives");
+  if (livesEl) {
+    const hearts = "♥ ".repeat(Math.max(0, rrLives)).trim();
+    const dead   = "♡ ".repeat(Math.max(0, 3 - rrLives)).trim();
+    livesEl.textContent = (hearts + " " + dead).trim();
+  }
+
+  const result = document.querySelector("#rrResult");
+  if (result) {
+    result.textContent = msg;
+    result.className = "rr-result lose";
+  }
+
+  clerkLine.textContent = "The tape is not pleased.";
+  fee++;
+  lateFee.textContent = `LATE FEE: $${fee}.97`;
+
+  if (rrLives <= 0) {
+    setTimeout(showRRGameOver, 900);
+  } else {
+    setTimeout(() => {
+      if (!rrActive) startRRRound();
+    }, 1400);
+  }
+}
+
+function showRRVictory() {
+  if (!currentTape) return;
+  screenContent.innerHTML = `
+    <div class="rr-game">
+      <p class="kicker">ALL ROUNDS CLEARED</p>
+      <h2 style="font-size:clamp(1.8rem,5vw,3rem)">Master Rewinder</h2>
+      <p>You stopped the tape ${rrScore}/${GAME_ROUNDS} times in the danger zone. The tape is intact. The clerk is impressed.</p>
+      <div><span class="rr-badge">🏆 NO LATE FEE</span></div>
+      <div class="action-row">
+        <button id="rrPlayAgainBtn" type="button" class="rr-stop-btn">Play Again</button>
+      </div>
+    </div>`;
+  lateFee.textContent = "";
+  clerkLine.textContent = "Not bad. Not bad at all.";
+  beep("play");
+  document.querySelector("#rrPlayAgainBtn").addEventListener("click", renderRewindRace);
+}
+
+function showRRGameOver() {
+  if (!currentTape) return;
+  screenContent.innerHTML = `
+    <div class="rr-game">
+      <p class="kicker">GAME OVER</p>
+      <h2 style="font-size:clamp(1.8rem,5vw,3rem)">Tape Destroyed</h2>
+      <p>You stopped ${rrScore}/${GAME_ROUNDS} tapes before snapping. The clerk is filling out an incident report.</p>
+      <div class="action-row">
+        <button id="rrPlayAgainBtn" type="button" class="rr-stop-btn">Try Again</button>
+      </div>
+    </div>`;
+  clerkLine.textContent = "Please see the manager.";
+  beep("error");
+  document.querySelector("#rrPlayAgainBtn").addEventListener("click", renderRewindRace);
+}
+
+function updateRRDisplay() {
+  const counter = document.querySelector("#rrCounter");
+  const needle  = document.querySelector("#rrNeedle");
+  const track   = document.querySelector("#rrTrack");
+  if (!counter || !needle || !track) return;
+
+  const startSecs     = START_SECS[Math.min(rrRound, START_SECS.length - 1)];
+  const totalTenths   = startSecs * 10;
+  const zoneWidth     = (STOP_ZONE_SEC / startSecs) * 100;   // % of track width
+  const progress      = 1 - Math.max(0, rrCounter) / totalTenths; // 0→1 as counter goes down
+  const needleLeft    = progress * 100;
+
+  counter.textContent = formatTenths(rrCounter);
+
+  const inDanger = rrCounter > 0 && rrCounter <= STOP_ZONE_SEC * 10;
+  counter.classList.toggle("danger", inDanger);
+
+  needle.style.left = `${Math.min(99, needleLeft)}%`;
+
+  // Zone sits at the right end of the track
+  const zone = document.querySelector("#rrZone");
+  if (zone) zone.style.width = `${zoneWidth}%`;
+
+  // Update ARIA on track if present
+  if (track.getAttribute("role") === "progressbar") {
+    track.setAttribute("aria-valuenow", Math.round(rrCounter / 10));
+  }
+}
+
+function formatTenths(tenths) {
+  const t = Math.max(0, tenths);
+  const secs    = Math.floor(t / 10);
+  const tenth   = t % 10;
+  const minutes = Math.floor(secs / 60);
+  const seconds = secs % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${tenth}`;
 }
 
 /* ─────────────────────────────────────────
@@ -691,8 +1194,6 @@ function updateClock() {
 
 /* ─────────────────────────────────────────
    IDLE / LATE FEE
-   lastUserAction is only ever mutated by real user interactions (recordUserAction),
-   never inside checkLateFee itself — so fees accumulate correctly.
 ───────────────────────────────────────── */
 function recordUserAction() {
   lastUserAction = Date.now();
@@ -705,7 +1206,6 @@ function checkLateFee() {
     fee += 1;
     lateFee.textContent = `LATE FEE: $${fee}.97`;
     clerkLine.textContent = "You are now emotionally overdue.";
-    // Do NOT reset lastUserAction here — let fees keep accumulating until user acts
     beep("error");
   }
 }
@@ -715,13 +1215,12 @@ function checkLateFee() {
 ───────────────────────────────────────── */
 function getAudio() {
   if (!audioContext) audioContext = new AudioContext();
-  // Resume if browser suspended it (autoplay policy)
   if (audioContext.state === "suspended") audioContext.resume();
   return audioContext;
 }
 
 function beep(type) {
-  const ctx = getAudio();
+  const ctx  = getAudio();
   const osc  = ctx.createOscillator();
   const gain = ctx.createGain();
   const now  = ctx.currentTime;
@@ -766,8 +1265,8 @@ function toggleAmbience() {
     data[i] = (Math.random() * 2 - 1) * 0.22;
   }
 
-  ambienceNode  = ctx.createBufferSource();
-  ambienceGain  = ctx.createGain();
+  ambienceNode        = ctx.createBufferSource();
+  ambienceGain        = ctx.createGain();
   ambienceGain.gain.value = 0.035;
   ambienceNode.buffer = buffer;
   ambienceNode.loop   = true;
@@ -796,5 +1295,5 @@ ambienceToggle.addEventListener("click",        toggleAmbience);
 renderShelf();
 applyTracking();
 updateClock();
-window.setInterval(updateClock,    1000);
-window.setInterval(checkLateFee,   1000);
+window.setInterval(updateClock,  1000);
+window.setInterval(checkLateFee, 1000);
