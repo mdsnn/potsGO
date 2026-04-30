@@ -16,6 +16,21 @@
   font-family: "Trebuchet MS", "Arial Narrow", Arial, sans-serif;
 }
 
+/* Lock dark values even if browser tries to apply light mode */
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: dark;
+    --ink:    #11131b;
+    --screen: #17201d;
+  }
+  body {
+    background:
+      radial-gradient(circle at 14% 16%, rgba(255, 230, 93, 0.18), transparent 26%),
+      linear-gradient(140deg, #0b1224 0%, #182751 42%, #5a1728 100%) !important;
+    color: #fff7d1 !important;
+  }
+}
+
 /* ─────────────────────────────────────────
    RESET
 ───────────────────────────────────────── */
@@ -234,10 +249,12 @@ h1 {
   border: 0;
   background: transparent;
   color: var(--ink);
-  cursor: pointer;
+  cursor: grab;
   transform: rotate(var(--tilt));
   transition: transform 180ms ease, filter 180ms ease, opacity 220ms ease;
 }
+
+.tape:active { cursor: grabbing; }
 
 .tape:hover,
 .tape:focus-visible {
@@ -246,7 +263,7 @@ h1 {
   outline: none;
 }
 
-/* Keyboard focus ring that doesn't rely on outline removal alone */
+/* Keyboard focus ring */
 .tape:focus-visible::after {
   content: "";
   position: absolute;
@@ -258,7 +275,13 @@ h1 {
 
 .tape.rented {
   opacity: 0.34;
-  pointer-events: none;
+}
+
+/* Dragging state */
+.tape.dragging {
+  opacity: 0.55;
+  transform: rotate(-2deg) scale(0.95);
+  cursor: grabbing;
 }
 
 .tape-spine {
@@ -351,7 +374,7 @@ h1 {
   --tracking-opacity: 0.27;
   --tracking-shift: 6px;
   aspect-ratio: 4 / 3;
-  min-height: clamp(260px, 45vw, 400px); /* responsive, replaces fixed 330px */
+  min-height: clamp(260px, 45vw, 400px);
   overflow: hidden;
   border: 10px solid #08090d;
   border-radius: 16px / 28px;
@@ -394,10 +417,9 @@ h1 {
     transparent 50% 100%
   );
   animation: tracking 4.8s linear infinite;
-  animation-play-state: paused; /* default: off until tape is in */
+  animation-play-state: paused;
 }
 
-/* Resume tracking animation only when a tape is loaded */
 .screen.paused.has-content::after,
 .screen.playing::after,
 .screen.rewinding::after,
@@ -408,12 +430,12 @@ h1 {
 /* ── Playback state styles ── */
 .screen.playing  { animation: colorBleed 3.6s steps(2, end) infinite; }
 
-.screen.playing  .screen-content { transform: translateX(var(--tracking-shift)); }
+.screen.playing   .screen-content { transform: translateX(var(--tracking-shift)); }
 .screen.rewinding .screen-content { animation: rewindJitter 260ms steps(2, end) infinite; }
 .screen.fast      .screen-content { animation: fastJitter   180ms steps(2, end) infinite; }
 
 /* ─────────────────────────────────────────
-   SCREEN CONTENT
+   SCENE FADE TRANSITION
 ───────────────────────────────────────── */
 .screen-content {
   position: absolute;
@@ -429,7 +451,25 @@ h1 {
     2px  0 rgba(255, 49,116,0.65),
    -2px  0 rgba( 62,219,255,0.60),
     0    0 16px rgba(118,255,157,0.28);
-  overflow-y: auto; /* allow scroll if scene has a lot of content */
+  overflow-y: auto;
+  /* Default: visible */
+  opacity: 1;
+  transition: opacity 200ms ease;
+}
+
+/* Scene cross-fade: JS adds this class, swaps content, then removes */
+.screen-content.scene-exit {
+  opacity: 0;
+}
+
+.screen-content.scene-enter {
+  opacity: 0;
+  animation: sceneFadeIn 300ms ease forwards;
+}
+
+@keyframes sceneFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .screen-content h2 {
@@ -638,6 +678,13 @@ h1 {
   color: rgba(255,255,255,0.38);
   font-family: "Courier New", monospace;
   overflow: hidden;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+/* Drag-over highlight on VCR slot */
+.vcr-slot.drag-over {
+  border-color: var(--gold);
+  box-shadow: 0 0 18px rgba(242,212,71,0.45);
 }
 
 .vcr-slot.loaded::before {
@@ -709,6 +756,7 @@ h1 {
   gap: 8px;
 }
 
+/* 5-column on desktop */
 .vcr-controls {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
@@ -751,7 +799,86 @@ h1 {
 }
 
 /* ─────────────────────────────────────────
-   MINI-GAME
+   CLERK QUIZ GAME
+───────────────────────────────────────── */
+.clerk-quiz {
+  display: grid;
+  gap: 16px;
+  width: min(460px, 100%);
+}
+
+.quiz-question {
+  font-size: clamp(1rem, 2.4vw, 1.2rem);
+  font-weight: 900;
+  color: #fff7d1;
+}
+
+.quiz-options {
+  display: grid;
+  gap: 8px;
+}
+
+.quiz-option {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 2px solid rgba(215,255,228,0.5);
+  background: rgba(0,0,0,0.32);
+  color: #d7ffe4;
+  cursor: pointer;
+  text-align: left;
+  font-family: "Courier New", monospace;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.quiz-option:hover:not(:disabled) {
+  background: rgba(118,255,157,0.18);
+  border-color: var(--green);
+}
+
+.quiz-option.correct {
+  background: rgba(118,255,157,0.28);
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.quiz-option.wrong {
+  background: rgba(233,52,52,0.28);
+  border-color: var(--red);
+  color: #ff9898;
+}
+
+.quiz-option:disabled { cursor: default; }
+
+.quiz-result {
+  min-height: 24px;
+  font-family: "Courier New", monospace;
+  font-size: 0.95rem;
+}
+
+.quiz-score {
+  font-family: "Courier New", monospace;
+  color: var(--gold);
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.quiz-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  animation: sceneFadeIn 400ms ease;
+}
+
+/* ─────────────────────────────────────────
+   LEGACY MINI-GAME (kept for CSS completeness)
 ───────────────────────────────────────── */
 .mini-game {
   display: grid;
@@ -767,7 +894,6 @@ h1 {
   position: relative;
 }
 
-/* green sweet-spot indicator */
 .meter::before {
   content: "";
   position: absolute;
@@ -901,8 +1027,14 @@ h1 {
     padding: 12px;
   }
 
+  /* 3-2 layout: play/pause/rewind on row 1, FF/eject on row 2 */
   .vcr-controls {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* Eject spans full width on the second row as the 5th button */
+  .vcr-controls .eject-btn {
+    grid-column: 1 / -1;
   }
 
   .card-grid {
@@ -917,8 +1049,10 @@ h1 {
   .screen.fast .screen-content,
   .vcr.is-playing .reel,
   .noise,
-  .screen::after {
+  .screen::after,
+  .screen-content.scene-enter {
     animation: none !important;
     transform: none !important;
+    opacity: 1 !important;
   }
 }
