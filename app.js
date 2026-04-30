@@ -181,13 +181,20 @@ const clerkLine = document.querySelector("#clerkLine");
 const lateFee = document.querySelector("#lateFee");
 const storeTime = document.querySelector("#storeTime");
 const ambienceToggle = document.querySelector("#ambienceToggle");
+const vcr = document.querySelector(".vcr");
+const tapeProgress = document.querySelector("#tapeProgress");
+const leftReel = document.querySelector("#leftReel");
+const rightReel = document.querySelector("#rightReel");
+const trackingLabel = document.querySelector("#trackingLabel");
 
 const controls = {
   play: document.querySelector("#playBtn"),
   pause: document.querySelector("#pauseBtn"),
   rewind: document.querySelector("#rewindBtn"),
   fast: document.querySelector("#ffBtn"),
-  eject: document.querySelector("#ejectBtn")
+  eject: document.querySelector("#ejectBtn"),
+  trackingDown: document.querySelector("#trackingDownBtn"),
+  trackingUp: document.querySelector("#trackingUpBtn")
 };
 
 let currentTape = null;
@@ -202,6 +209,8 @@ let gameTimer = null;
 let gameValue = 0;
 let gameDirection = 1;
 let playbackTimer = null;
+let trackingLevel = 3;
+let tapeEnded = false;
 
 function renderShelf() {
   tapes.forEach((tape) => {
@@ -222,6 +231,7 @@ function rentTape(id) {
   stopPlayback();
   currentTape = tapes.find((tape) => tape.id === id);
   currentScene = 0;
+  tapeEnded = false;
   mode = "loaded";
   lastAction = Date.now();
   document.querySelectorAll(".tape").forEach((node) => {
@@ -233,6 +243,9 @@ function rentTape(id) {
   vcrDisplay.textContent = currentTape.runtime;
   clerkLine.textContent = `"${currentTape.title}" is due back by midnight.`;
   screen.className = "screen paused";
+  vcr.classList.add("has-tape");
+  vcr.classList.remove("is-playing");
+  updateTapeProgress();
   renderScene("loaded");
   beep("insert");
 }
@@ -288,12 +301,17 @@ function setMode(nextMode) {
   mode = nextMode;
   lastAction = Date.now();
   screen.classList.remove("playing", "paused", "rewinding", "fast");
+  vcr.classList.toggle("is-playing", nextMode === "playing");
   if (nextMode !== "playing") {
     stopGame();
     stopPlayback();
   }
 
   if (nextMode === "playing") {
+    if (tapeEnded) {
+      currentScene = 0;
+      tapeEnded = false;
+    }
     screen.classList.add("playing");
     clerkLine.textContent = `Now playing: ${currentTape.title}.`;
     renderScene("playing");
@@ -313,6 +331,7 @@ function setMode(nextMode) {
   if (nextMode === "rewinding") {
     screen.classList.add("rewinding");
     currentScene = Math.max(0, currentScene - 1);
+    tapeEnded = false;
     clerkLine.textContent = "Be kind, rewind.";
     renderScene("rewinding");
     beep("rewind");
@@ -322,6 +341,7 @@ function setMode(nextMode) {
   if (nextMode === "fast") {
     screen.classList.add("fast");
     currentScene = Math.min(currentTape.scenes.length - 1, currentScene + 1);
+    tapeEnded = false;
     clerkLine.textContent = "Skipping to the good parts.";
     renderScene("fast-forward");
     beep("fast");
@@ -333,6 +353,7 @@ function ejectTape() {
   stopPlayback();
   currentTape = null;
   currentScene = 0;
+  tapeEnded = false;
   mode = "empty";
   document.querySelectorAll(".tape").forEach((node) => node.classList.remove("rented"));
   vcrSlot.classList.remove("loaded");
@@ -340,6 +361,8 @@ function ejectTape() {
   vcrDisplay.textContent = "--:--";
   clerkLine.textContent = "Tape returned. Shelf's open.";
   screen.className = "screen paused";
+  vcr.classList.remove("has-tape", "is-playing");
+  updateTapeProgress();
   renderScene();
   beep("eject");
 }
@@ -365,8 +388,10 @@ function startPlayback() {
     }
 
     mode = "paused";
+    tapeEnded = true;
     screen.classList.remove("playing");
     screen.classList.add("paused");
+    vcr.classList.remove("is-playing");
     clerkLine.textContent = `${currentTape.title} reached the end of the tape.`;
     screenContent.innerHTML = `
       <p class="kicker">END OF TAPE</p>
@@ -374,6 +399,7 @@ function startPlayback() {
       <p>Rewind to watch it again, fast-forward to jump around, or eject and rent another tape.</p>
     `;
     vcrDisplay.textContent = "END";
+    updateTapeProgress(1);
     beep("eject");
   }, scene.duration || 4500);
 }
@@ -388,11 +414,13 @@ function stopPlayback() {
 function updateTransportDisplay(state) {
   if (!currentTape) {
     vcrDisplay.textContent = "--:--";
+    updateTapeProgress();
     return;
   }
 
   if (state === "loaded") {
     vcrDisplay.textContent = currentTape.runtime;
+    updateTapeProgress();
     return;
   }
 
@@ -405,6 +433,38 @@ function updateTransportDisplay(state) {
     "fast-forward": "FF"
   };
   vcrDisplay.textContent = `${labels[state] || "PLAY"} ${sceneNumber}/${sceneTotal}`;
+  updateTapeProgress();
+}
+
+function updateTapeProgress(forcedProgress) {
+  const progress = typeof forcedProgress === "number" ? forcedProgress : getTapeProgress();
+  const leftScale = 1 - progress * 0.44;
+  const rightScale = 0.56 + progress * 0.44;
+  tapeProgress.style.width = `${Math.round(progress * 100)}%`;
+  leftReel.style.transform = `scale(${leftScale})`;
+  rightReel.style.transform = `scale(${rightScale})`;
+}
+
+function getTapeProgress() {
+  if (!currentTape) {
+    return 0;
+  }
+
+  const totalScenes = Math.max(1, currentTape.scenes.length - 1);
+  return Math.min(1, currentScene / totalScenes);
+}
+
+function adjustTracking(direction) {
+  trackingLevel = Math.min(6, Math.max(1, trackingLevel + direction));
+  applyTracking();
+  beep("click");
+}
+
+function applyTracking() {
+  const distortion = 0.1 + trackingLevel * 0.055;
+  screen.style.setProperty("--tracking-opacity", distortion.toFixed(2));
+  screen.style.setProperty("--tracking-shift", `${trackingLevel * 2}px`);
+  trackingLabel.textContent = `TRACKING ${trackingLevel}`;
 }
 
 function renderGame() {
@@ -533,9 +593,13 @@ controls.pause.addEventListener("click", () => setMode("paused"));
 controls.rewind.addEventListener("click", () => setMode("rewinding"));
 controls.fast.addEventListener("click", () => setMode("fast"));
 controls.eject.addEventListener("click", ejectTape);
+controls.trackingDown.addEventListener("click", () => adjustTracking(-1));
+controls.trackingUp.addEventListener("click", () => adjustTracking(1));
 ambienceToggle.addEventListener("click", toggleAmbience);
+ambienceToggle.textContent = "AUDIO";
 
 renderShelf();
+applyTracking();
 updateClock();
 window.setInterval(updateClock, 1000);
 window.setInterval(checkLateFee, 1000);

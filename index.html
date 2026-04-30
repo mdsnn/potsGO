@@ -29,6 +29,12 @@
             <button id="ambienceToggle" class="icon-button" type="button" aria-label="Toggle store ambience" title="Toggle store ambience">♪</button>
           </div>
 
+          <div class="staff-pick">
+            <span>Staff Pick</span>
+            <strong>AI SaaS builder with production proof.</strong>
+            <p>React frontends, API-first backends, AI agents, and business systems that survive real daily use.</p>
+          </div>
+
           <div id="tapeShelf" class="tape-shelf" aria-label="Choose a tape"></div>
 
           <div class="counter">
@@ -56,12 +62,23 @@
             <div id="vcrSlot" class="vcr-slot">
               <span id="slotLabel">INSERT TAPE</span>
             </div>
+            <div class="tape-window" aria-hidden="true">
+              <div id="leftReel" class="reel left-reel"></div>
+              <div class="tape-track">
+                <span id="tapeProgress"></span>
+              </div>
+              <div id="rightReel" class="reel right-reel"></div>
+            </div>
             <div class="vcr-controls" aria-label="VCR controls">
               <button id="playBtn" type="button">Play</button>
               <button id="pauseBtn" type="button">Pause</button>
               <button id="rewindBtn" type="button">Rewind</button>
               <button id="ffBtn" type="button">Fast Fwd</button>
               <button id="ejectBtn" type="button">Eject</button>
+            </div>
+            <div class="tracking-controls" aria-label="Tracking controls">
+              <button id="trackingDownBtn" type="button">TRK -</button>
+              <button id="trackingUpBtn" type="button">TRK +</button>
             </div>
           </div>
         </section>
