@@ -16,7 +16,6 @@
   font-family: "Trebuchet MS", "Arial Narrow", Arial, sans-serif;
 }
 
-/* Lock dark values even if browser tries to apply light mode */
 @media (prefers-color-scheme: light) {
   :root {
     color-scheme: dark;
@@ -226,7 +225,6 @@ h1 {
   box-shadow: inset 0 0 30px rgba(0,0,0,0.45), 0 18px 46px var(--shadow);
 }
 
-/* Loading placeholder */
 .shelf-loading {
   grid-column: 1 / -1;
   color: rgba(255,247,209,0.5);
@@ -263,7 +261,6 @@ h1 {
   outline: none;
 }
 
-/* Keyboard focus ring */
 .tape:focus-visible::after {
   content: "";
   position: absolute;
@@ -273,11 +270,8 @@ h1 {
   pointer-events: none;
 }
 
-.tape.rented {
-  opacity: 0.34;
-}
+.tape.rented  { opacity: 0.34; }
 
-/* Dragging state */
 .tape.dragging {
   opacity: 0.55;
   transform: rotate(-2deg) scale(0.95);
@@ -403,7 +397,6 @@ h1 {
   mix-blend-mode: soft-light;
 }
 
-/* Tracking line — paused when no tape inserted */
 .screen::after {
   content: "";
   position: absolute;
@@ -427,15 +420,14 @@ h1 {
   animation-play-state: running;
 }
 
-/* ── Playback state styles ── */
-.screen.playing  { animation: colorBleed 3.6s steps(2, end) infinite; }
+.screen.playing   { animation: colorBleed 3.6s steps(2, end) infinite; }
 
 .screen.playing   .screen-content { transform: translateX(var(--tracking-shift)); }
 .screen.rewinding .screen-content { animation: rewindJitter 260ms steps(2, end) infinite; }
 .screen.fast      .screen-content { animation: fastJitter   180ms steps(2, end) infinite; }
 
 /* ─────────────────────────────────────────
-   SCENE FADE TRANSITION
+   SCENE CONTENT
 ───────────────────────────────────────── */
 .screen-content {
   position: absolute;
@@ -452,15 +444,11 @@ h1 {
    -2px  0 rgba( 62,219,255,0.60),
     0    0 16px rgba(118,255,157,0.28);
   overflow-y: auto;
-  /* Default: visible */
   opacity: 1;
   transition: opacity 200ms ease;
 }
 
-/* Scene cross-fade: JS adds this class, swaps content, then removes */
-.screen-content.scene-exit {
-  opacity: 0;
-}
+.screen-content.scene-exit  { opacity: 0; }
 
 .screen-content.scene-enter {
   opacity: 0;
@@ -527,9 +515,7 @@ h1 {
   transition: background 120ms ease;
 }
 
-.link-row a {
-  background: rgba(118,255,157,0.14);
-}
+.link-row a { background: rgba(118,255,157,0.14); }
 
 .link-row a:hover,
 .link-row a:focus-visible {
@@ -539,7 +525,7 @@ h1 {
 }
 
 /* ─────────────────────────────────────────
-   CARD GRID (GitHub repos)
+   CARD GRID
 ───────────────────────────────────────── */
 .card-grid {
   display: grid;
@@ -592,6 +578,11 @@ h1 {
   filter: saturate(0.72) contrast(1.18) sepia(0.14);
 }
 
+/* Larger image in fullscreen */
+.fs-screen .screen-image img {
+  max-height: 360px;
+}
+
 /* ─────────────────────────────────────────
    MISC SCREEN ELEMENTS
 ───────────────────────────────────────── */
@@ -626,6 +617,32 @@ h1 {
   color: rgba(255,255,255,0.75);
   font-family: "Courier New", monospace;
   font-size: 0.8rem;
+}
+
+/* ─────────────────────────────────────────
+   EXPAND BUTTON (on TV bezel)
+───────────────────────────────────────── */
+.expand-btn {
+  position: absolute;
+  top: 28px;
+  left: 28px;
+  z-index: 5;
+  padding: 5px 10px;
+  border: 1px solid rgba(255,255,255,0.28);
+  border-radius: 2px;
+  background: rgba(0,0,0,0.52);
+  color: rgba(255,255,255,0.72);
+  font-family: "Courier New", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.expand-btn:hover {
+  background: rgba(118,255,157,0.18);
+  color: var(--green);
+  border-color: rgba(118,255,157,0.5);
 }
 
 /* ─────────────────────────────────────────
@@ -681,7 +698,6 @@ h1 {
   transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 
-/* Drag-over highlight on VCR slot */
 .vcr-slot.drag-over {
   border-color: var(--gold);
   box-shadow: 0 0 18px rgba(242,212,71,0.45);
@@ -756,7 +772,6 @@ h1 {
   gap: 8px;
 }
 
-/* 5-column on desktop */
 .vcr-controls {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
@@ -791,7 +806,6 @@ h1 {
   box-shadow: none;
 }
 
-/* Active transport state highlight */
 .vcr-controls button.transport-active {
   background: linear-gradient(180deg, #1c3d20, #0d2010);
   color: var(--green);
@@ -799,13 +813,9 @@ h1 {
 }
 
 /* ─────────────────────────────────────────
-   CLERK QUIZ GAME
+   MINI-GAME / QUIZ STYLES
 ───────────────────────────────────────── */
-.clerk-quiz {
-  display: grid;
-  gap: 16px;
-  width: min(460px, 100%);
-}
+.clerk-quiz { display: grid; gap: 16px; width: min(460px, 100%); }
 
 .quiz-question {
   font-size: clamp(1rem, 2.4vw, 1.2rem);
@@ -813,10 +823,7 @@ h1 {
   color: #fff7d1;
 }
 
-.quiz-options {
-  display: grid;
-  gap: 8px;
-}
+.quiz-options { display: grid; gap: 8px; }
 
 .quiz-option {
   width: 100%;
@@ -851,19 +858,8 @@ h1 {
 }
 
 .quiz-option:disabled { cursor: default; }
-
-.quiz-result {
-  min-height: 24px;
-  font-family: "Courier New", monospace;
-  font-size: 0.95rem;
-}
-
-.quiz-score {
-  font-family: "Courier New", monospace;
-  color: var(--gold);
-  font-size: 1.1rem;
-  font-weight: 900;
-}
+.quiz-result { min-height: 24px; font-family: "Courier New", monospace; font-size: 0.95rem; }
+.quiz-score  { font-family: "Courier New", monospace; color: var(--gold); font-size: 1.1rem; font-weight: 900; }
 
 .quiz-badge {
   display: inline-block;
@@ -877,14 +873,7 @@ h1 {
   animation: sceneFadeIn 400ms ease;
 }
 
-/* ─────────────────────────────────────────
-   LEGACY MINI-GAME (kept for CSS completeness)
-───────────────────────────────────────── */
-.mini-game {
-  display: grid;
-  gap: 14px;
-  width: min(420px, 100%);
-}
+.mini-game { display: grid; gap: 14px; width: min(420px, 100%); }
 
 .meter {
   height: 24px;
@@ -942,6 +931,7 @@ h1 {
   inset: 0;
   z-index: 20;
   background: radial-gradient(circle at center, transparent 0 58%, rgba(0,0,0,0.24) 100%);
+  pointer-events: none;
 }
 
 .noise {
@@ -954,6 +944,179 @@ h1 {
     radial-gradient(circle, #000 0 1px, transparent 1px);
   background-size: 5px 5px, 7px 7px;
   animation: noise 260ms steps(2, end) infinite;
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────
+   FULLSCREEN OVERLAY
+───────────────────────────────────────── */
+.fs-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(7, 8, 12, 0.97);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  /* Smooth in/out */
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.fs-overlay.open {
+  display: flex;
+  opacity: 1;
+}
+
+/* Two-step open so the display:flex settles before transition fires */
+.fs-overlay.fs-visible {
+  opacity: 1;
+}
+
+.fs-shell {
+  display: flex;
+  flex-direction: column;
+  width: min(1100px, 100%);
+  max-height: 100%;
+  gap: 14px;
+}
+
+/* ── Fullscreen TV bezel ── */
+.fs-tv {
+  position: relative;
+  padding: 20px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, #34313a, #111217);
+  box-shadow: inset 0 0 30px rgba(255,255,255,0.05), 0 0 80px rgba(0,0,0,0.9);
+}
+
+.fs-tracking-label {
+  top: 28px;
+  right: 36px;
+}
+
+/* Tape title badge top-left of fullscreen TV */
+.fs-tape-label {
+  position: absolute;
+  top: 28px;
+  left: 28px;
+  z-index: 5;
+  padding: 5px 10px;
+  border: 1px solid rgba(242,212,71,0.45);
+  background: rgba(0,0,0,0.62);
+  color: var(--gold);
+  font-family: "Courier New", monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Fullscreen screen — 16:9, fills available height ── */
+.fs-screen {
+  aspect-ratio: 16 / 9;
+  min-height: 0 !important;
+  width: 100%;
+  max-height: calc(100vh - 200px);
+}
+
+/* ── Bottom controls bar ── */
+.fs-vcr-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #24252c, #111217);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+  flex-wrap: wrap;
+}
+
+.fs-display-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.fs-transport {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.fs-transport button {
+  flex: 1;
+  min-width: 60px;
+  min-height: 44px;
+  border: 1px solid #07090a;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #4a4d54, #25272d);
+  color: #f3f3f3;
+  cursor: pointer;
+  box-shadow: inset 0 1px rgba(255,255,255,0.18);
+  letter-spacing: 0.03em;
+  transition: background 100ms ease, filter 100ms ease;
+}
+
+.fs-transport button:hover {
+  background: linear-gradient(180deg, #5a5d64, #35373d);
+  filter: brightness(1.1);
+}
+
+.fs-transport button:active { transform: translateY(1px); }
+
+.fs-transport button.transport-active {
+  background: linear-gradient(180deg, #1c3d20, #0d2010);
+  color: var(--green);
+  box-shadow: inset 0 0 8px rgba(118,255,157,0.25);
+}
+
+.fs-tracking-col {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.fs-tracking-col button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #07090a;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #4a4d54, #25272d);
+  color: #f3f3f3;
+  cursor: pointer;
+  box-shadow: inset 0 1px rgba(255,255,255,0.18);
+  letter-spacing: 0.03em;
+  transition: background 100ms ease;
+}
+
+.fs-tracking-col button:hover {
+  background: linear-gradient(180deg, #5a5d64, #35373d);
+}
+
+/* Minimize button — distinct red-tinted style */
+.fs-minimize-btn {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(233,52,52,0.45);
+  border-radius: 2px;
+  background: linear-gradient(180deg, #3d1c1c, #200e0e);
+  color: #ffaaaa;
+  cursor: pointer;
+  font-family: "Courier New", monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 900;
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.fs-minimize-btn:hover {
+  background: linear-gradient(180deg, #5a2828, #321414);
+  color: #ffcccc;
 }
 
 /* ─────────────────────────────────────────
@@ -1000,7 +1163,6 @@ h1 {
   .store-grid {
     grid-template-columns: 1fr;
   }
-
   .player-zone {
     order: -1;
   }
@@ -1011,35 +1173,34 @@ h1 {
     width: min(100% - 18px, 1180px);
     padding-top: 10px;
   }
-
   .marquee {
     align-items: flex-start;
     flex-direction: column;
   }
-
   .clock {
     width: 100%;
     text-align: left;
   }
-
   .tape-shelf {
     grid-template-columns: 1fr;
     padding: 12px;
   }
-
-  /* 3-2 layout: play/pause/rewind on row 1, FF/eject on row 2 */
   .vcr-controls {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-
-  /* Eject spans full width on the second row as the 5th button */
   .vcr-controls .eject-btn {
     grid-column: 1 / -1;
   }
-
   .card-grid {
     grid-template-columns: 1fr;
   }
+  .fs-vcr-bar {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .fs-display-col { display: none; }
+  .fs-transport button { font-size: 0.78rem; min-height: 38px; }
+  .fs-minimize-btn     { min-height: 38px; padding: 0 12px; }
 }
 
 /* Reduce motion */
@@ -1055,4 +1216,5 @@ h1 {
     transform: none !important;
     opacity: 1 !important;
   }
+  .fs-overlay { transition: none; }
 }

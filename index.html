@@ -5,27 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Mwiko Video Club</title>
 
-    <!-- OG / Social sharing -->
     <meta name="description" content="AI SaaS builder & full-stack developer in Lusaka. React, FastAPI, Go, PostgreSQL. Browse the tape shelf.">
-    <meta property="og:title"       content="Mwiko Video Club — Portfolio">
-    <meta property="og:description" content="AI SaaS builder & full-stack developer. Browse the tape shelf to see what I build.">
-    <meta property="og:image"       content="assets/og-preview.png">
-    <meta property="og:type"        content="website">
-    <meta name="twitter:card"       content="summary_large_image">
-    <meta name="twitter:title"      content="Mwiko Video Club — Portfolio">
+    <meta property="og:title"        content="Mwiko Video Club — Portfolio">
+    <meta property="og:description"  content="AI SaaS builder & full-stack developer. Browse the tape shelf to see what I build.">
+    <meta property="og:image"        content="assets/og-preview.png">
+    <meta property="og:type"         content="website">
+    <meta name="twitter:card"        content="summary_large_image">
+    <meta name="twitter:title"       content="Mwiko Video Club — Portfolio">
     <meta name="twitter:description" content="AI SaaS builder & full-stack developer. Browse the tape shelf.">
-    <meta name="twitter:image"      content="assets/og-preview.png">
+    <meta name="twitter:image"       content="assets/og-preview.png">
 
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
-    <div class="crt" aria-hidden="true"></div>
+    <div class="crt"   aria-hidden="true"></div>
     <div class="noise" aria-hidden="true"></div>
 
     <main class="store-shell">
+
+      <!-- ── HEADER ── -->
       <section class="marquee" aria-label="Store header">
         <div>
-          
           <h1>Mwiko Video Club</h1>
         </div>
         <div class="clock">
@@ -35,6 +35,7 @@
       </section>
 
       <section class="store-grid">
+
         <!-- ── SHELF ZONE ── -->
         <aside class="shelf-zone" aria-label="VHS tape shelves">
           <div class="aisle-sign">
@@ -49,7 +50,6 @@
             >♪ AUDIO</button>
           </div>
 
-          <!-- Staff pick updates dynamically when a tape is rented -->
           <div class="staff-pick" id="staffPick" aria-live="polite">
             <span>Staff Pick</span>
             <strong id="staffPickTitle">AI SaaS builder with production proof.</strong>
@@ -75,6 +75,16 @@
         <section class="player-zone" aria-label="VCR player">
           <div class="tv">
             <div id="trackingLabel" class="tracking-label" aria-live="polite" aria-label="Tracking level">TRACKING 3</div>
+
+            <!-- Expand to fullscreen button -->
+            <button
+              id="expandBtn"
+              class="expand-btn"
+              type="button"
+              aria-label="Expand to fullscreen"
+              title="Fullscreen (F)"
+            >⛶ EXPAND</button>
+
             <div
               id="screen"
               class="screen paused"
@@ -100,7 +110,6 @@
               >--:--</div>
             </div>
 
-            <!-- VCR slot — also a drag drop target -->
             <div
               id="vcrSlot"
               class="vcr-slot"
@@ -111,7 +120,7 @@
             </div>
 
             <div class="tape-window" aria-hidden="true">
-              <div id="leftReel" class="reel left-reel"></div>
+              <div id="leftReel"  class="reel left-reel"></div>
               <div class="tape-track">
                 <span id="tapeProgress"></span>
               </div>
@@ -132,14 +141,77 @@
             </div>
           </div>
         </section>
+
       </section>
     </main>
+
+    <!-- ── FULLSCREEN OVERLAY ── -->
+    <div
+      id="fsOverlay"
+      class="fs-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Fullscreen player"
+      aria-hidden="true"
+    >
+      <div class="fs-shell">
+
+        <div class="fs-tv">
+          <div id="fsTrackingLabel" class="tracking-label fs-tracking-label" aria-live="polite">TRACKING 3</div>
+
+          <!-- Tape title badge shown in fullscreen -->
+          <div id="fsTapeLabel" class="fs-tape-label" aria-hidden="true"></div>
+
+          <div
+            id="fsScreen"
+            class="screen paused fs-screen"
+            role="region"
+            aria-label="Fullscreen video screen"
+            aria-live="polite"
+          >
+            <div id="fsScreenContent" class="screen-content"></div>
+          </div>
+        </div>
+
+        <!-- Fullscreen VCR controls bar -->
+        <div class="fs-vcr-bar">
+
+          <div class="fs-display-col">
+            <div class="brand" aria-hidden="true">VIDEOMATIC 4000</div>
+            <div id="fsVcrDisplay" class="vcr-display" aria-live="polite" aria-label="VCR display">--:--</div>
+          </div>
+
+          <div class="fs-transport" role="group" aria-label="Fullscreen transport controls">
+            <button id="fsPlayBtn"   type="button" aria-label="Play">▶ Play</button>
+            <button id="fsPauseBtn"  type="button" aria-label="Pause">⏸ Pause</button>
+            <button id="fsRewindBtn" type="button" aria-label="Rewind">◀◀ Rew</button>
+            <button id="fsFfBtn"     type="button" aria-label="Fast forward">FF ▶▶</button>
+            <button id="fsEjectBtn"  type="button" aria-label="Eject tape" class="eject-btn">⏏ Eject</button>
+          </div>
+
+          <div class="fs-tracking-col" role="group" aria-label="Fullscreen tracking">
+            <button id="fsTrkDownBtn" type="button" aria-label="Decrease tracking">TRK −</button>
+            <button id="fsTrkUpBtn"   type="button" aria-label="Increase tracking">TRK +</button>
+          </div>
+
+          <button
+            id="minimizeBtn"
+            class="fs-minimize-btn"
+            type="button"
+            aria-label="Minimize fullscreen"
+            title="Minimize (Esc)"
+          >⊡ MINIMIZE</button>
+
+        </div><!-- /fs-vcr-bar -->
+
+      </div><!-- /fs-shell -->
+    </div><!-- /fs-overlay -->
 
     <!-- Tape card template -->
     <template id="tapeTemplate">
       <button class="tape" type="button" role="listitem" draggable="true">
-        <span class="tape-spine" aria-hidden="true"></span>
-        <span class="tape-cover" aria-hidden="true">
+        <span class="tape-spine"  aria-hidden="true"></span>
+        <span class="tape-cover"  aria-hidden="true">
           <span class="tape-sticker"></span>
           <strong></strong>
           <small></small>

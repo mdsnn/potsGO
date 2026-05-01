@@ -38,6 +38,7 @@ const tapes = [
       }
     ]
   },
+
   {
     id: "projects",
     title: "AI SaaS",
@@ -78,9 +79,59 @@ const tapes = [
           { title: "marketplace",       meta: "TypeScript", body: "E-commerce marketplace template." }
         ],
         duration: 5200
+      },
+      /* ── Project screenshots ── */
+      {
+        heading: "Pulse",
+        eyebrow: "Real-time Analytics Dashboard · TypeScript",
+        body: "Live event stream ingestion, anomaly detection, and AI-assisted insight summaries for production-grade data pipelines.",
+        image: "assets/pulse.PNG",
+        imageAlt: "Pulse — real-time analytics dashboard",
+        duration: 5000
+      },
+      {
+        heading: "Taskflow",
+        eyebrow: "AI Workflow Manager · TypeScript",
+        body: "Kanban-style task and workflow OS with AI-assisted planning, sprint velocity tracking, and blocker prediction.",
+        image: "assets/taskflow.PNG",
+        imageAlt: "Taskflow — AI workflow manager",
+        duration: 5000
+      },
+      {
+        heading: "AI Form Builder",
+        eyebrow: "Dynamic Form Generation · TypeScript",
+        body: "Describe the form in plain language — Claude drafts the fields, validation rules, and conditional logic. Embeds anywhere.",
+        image: "assets/formbuilder.PNG",
+        imageAlt: "AI Form Builder — dynamic form generation",
+        duration: 5000
+      },
+      {
+        heading: "CSV Importer",
+        eyebrow: "Data Validation & Import · TypeScript",
+        body: "Schema inference, row-level validation, type coercion, and clean PostgreSQL loading with per-cell error reporting.",
+        image: "assets/csvimporter.PNG",
+        imageAlt: "CSV Importer — data validation and import",
+        duration: 5000
+      },
+      {
+        heading: "Invoice Generator",
+        eyebrow: "PDF Invoicing · TypeScript",
+        body: "Claude reads your work log and fills the line items. Polished, client-ready PDF invoices in seconds.",
+        image: "assets/invoicegen.PNG",
+        imageAlt: "Invoice Generator — PDF invoicing tool",
+        duration: 5000
+      },
+      {
+        heading: "Marketplace",
+        eyebrow: "E-commerce Platform · TypeScript",
+        body: "AI-assisted buyer-seller matching, product discovery, payments, and analytics in one platform.",
+        image: "assets/marketplace.PNG",
+        imageAlt: "Marketplace — e-commerce platform",
+        duration: 5000
       }
     ]
   },
+
   {
     id: "contact",
     title: "Return Counter",
@@ -109,6 +160,7 @@ const tapes = [
       }
     ]
   },
+
   {
     id: "blog",
     title: "After Hours",
@@ -137,6 +189,7 @@ const tapes = [
       }
     ]
   },
+
   {
     id: "game",
     title: "Rewind Race",
@@ -156,6 +209,7 @@ const tapes = [
       }
     ]
   },
+
   {
     id: "resume",
     title: "Resume",
@@ -255,7 +309,7 @@ const tapes = [
 ];
 
 /* ─────────────────────────────────────────
-   DOM REFS
+   DOM REFS — MAIN
 ───────────────────────────────────────── */
 const shelf          = document.querySelector("#tapeShelf");
 const template       = document.querySelector("#tapeTemplate");
@@ -275,6 +329,7 @@ const rightReel      = document.querySelector("#rightReel");
 const trackingLabel  = document.querySelector("#trackingLabel");
 const staffPickTitle = document.querySelector("#staffPickTitle");
 const staffPickBody  = document.querySelector("#staffPickBody");
+const expandBtn      = document.querySelector("#expandBtn");
 
 const controls = {
   play:         document.querySelector("#playBtn"),
@@ -284,6 +339,27 @@ const controls = {
   eject:        document.querySelector("#ejectBtn"),
   trackingDown: document.querySelector("#trackingDownBtn"),
   trackingUp:   document.querySelector("#trackingUpBtn")
+};
+
+/* ─────────────────────────────────────────
+   DOM REFS — FULLSCREEN
+───────────────────────────────────────── */
+const fsOverlay       = document.querySelector("#fsOverlay");
+const fsScreen        = document.querySelector("#fsScreen");
+const fsScreenContent = document.querySelector("#fsScreenContent");
+const fsVcrDisplay    = document.querySelector("#fsVcrDisplay");
+const fsTapeLabel     = document.querySelector("#fsTapeLabel");
+const fsTrackingLabel = document.querySelector("#fsTrackingLabel");
+const minimizeBtn     = document.querySelector("#minimizeBtn");
+
+const fsControls = {
+  play:         document.querySelector("#fsPlayBtn"),
+  pause:        document.querySelector("#fsPauseBtn"),
+  rewind:       document.querySelector("#fsRewindBtn"),
+  fast:         document.querySelector("#fsFfBtn"),
+  eject:        document.querySelector("#fsEjectBtn"),
+  trackingDown: document.querySelector("#fsTrkDownBtn"),
+  trackingUp:   document.querySelector("#fsTrkUpBtn")
 };
 
 /* ─────────────────────────────────────────
@@ -301,6 +377,7 @@ let gameTimer      = null;
 let playbackTimer  = null;
 let trackingLevel  = 3;
 let tapeEnded      = false;
+let fsOpen         = false;
 
 /* ─────────────────────────────────────────
    SHELF RENDER
@@ -320,15 +397,10 @@ function renderShelf() {
     node.querySelector("small").textContent  = tape.tag;
     node.setAttribute("aria-label", `${tape.title} — ${tape.tag}. Runtime: ${tape.runtime}.`);
 
-    // Click to rent (kept alongside drag)
     node.addEventListener("click", () => rentTape(tape.id));
-
-    // ── HTML5 Drag ──
     node.setAttribute("draggable", "true");
     node.addEventListener("dragstart", onTapeDragStart);
     node.addEventListener("dragend",   onTapeDragEnd);
-
-    // ── Touch Drag ──
     node.addEventListener("touchstart", onTouchStart, { passive: false });
 
     shelf.appendChild(node);
@@ -348,39 +420,25 @@ function onTapeDragStart(e) {
 
   dragGhost = node.cloneNode(true);
   dragGhost.style.cssText = `
-    position: fixed;
-    top: -999px;
-    left: -999px;
+    position: fixed; top: -999px; left: -999px;
     width: ${node.offsetWidth}px;
     transform: rotate(-3deg) scale(0.88);
-    pointer-events: none;
-    opacity: 0.92;
-    z-index: 9999;
-    border-radius: 2px;
+    pointer-events: none; opacity: 0.92; z-index: 9999; border-radius: 2px;
   `;
   dragGhost.style.setProperty("--tape-color", node.style.getPropertyValue("--tape-color"));
   dragGhost.style.setProperty("--cover-art",  node.style.getPropertyValue("--cover-art"));
   dragGhost.style.setProperty("--tilt", "0deg");
-
   document.body.appendChild(dragGhost);
+
   e.dataTransfer.setDragImage(dragGhost, dragGhost.offsetWidth / 2, 30);
   e.dataTransfer.effectAllowed = "move";
   e.dataTransfer.setData("text/plain", draggingId);
 }
 
 function onTapeDragEnd(e) {
-  const node = e.currentTarget;
-  node.classList.remove("dragging");
-
-  if (dragGhost) {
-    dragGhost.remove();
-    dragGhost = null;
-  }
-
-  if (e.dataTransfer.dropEffect === "none") {
-    animateSnapBack(node);
-  }
-
+  e.currentTarget.classList.remove("dragging");
+  if (dragGhost) { dragGhost.remove(); dragGhost = null; }
+  if (e.dataTransfer.dropEffect === "none") animateSnapBack(e.currentTarget);
   draggingId = null;
 }
 
@@ -388,14 +446,10 @@ function animateSnapBack(node) {
   node.style.transition = "transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)";
   node.style.transform  = "translateY(-12px) rotate(0deg)";
   requestAnimationFrame(() => {
-    setTimeout(() => {
-      node.style.transform  = "";
-      node.style.transition = "";
-    }, 300);
+    setTimeout(() => { node.style.transform = ""; node.style.transition = ""; }, 300);
   });
 }
 
-/* ─── VCR Slot as drop target ─── */
 vcrSlot.addEventListener("dragover", (e) => {
   e.preventDefault();
   e.dataTransfer.dropEffect = "move";
@@ -403,26 +457,20 @@ vcrSlot.addEventListener("dragover", (e) => {
 });
 
 vcrSlot.addEventListener("dragleave", (e) => {
-  if (!vcrSlot.contains(e.relatedTarget)) {
-    vcrSlot.classList.remove("drag-over");
-  }
+  if (!vcrSlot.contains(e.relatedTarget)) vcrSlot.classList.remove("drag-over");
 });
 
 vcrSlot.addEventListener("drop", (e) => {
   e.preventDefault();
   vcrSlot.classList.remove("drag-over");
-
   const id = e.dataTransfer.getData("text/plain") || draggingId;
-  if (id) {
-    e.dataTransfer.dropEffect = "move";
-    rentTape(id);
-  }
+  if (id) { e.dataTransfer.dropEffect = "move"; rentTape(id); }
 });
 
 vcrSlot.setAttribute("draggable", "false");
 
 /* ─────────────────────────────────────────
-   DRAG & DROP — TOUCH (mobile fallback)
+   DRAG & DROP — TOUCH
 ───────────────────────────────────────── */
 let touchDragId  = null;
 let touchClone   = null;
@@ -431,32 +479,24 @@ let touchOffsetY = 0;
 
 function onTouchStart(e) {
   if (e.touches.length !== 1) return;
-
   const node   = e.currentTarget;
   touchDragId  = node.dataset.id;
   const touch  = e.touches[0];
   const rect   = node.getBoundingClientRect();
-
   touchOffsetX = touch.clientX - rect.left;
   touchOffsetY = touch.clientY - rect.top;
 
   touchClone = node.cloneNode(true);
   touchClone.style.cssText = `
-    position: fixed;
-    width: ${rect.width}px;
-    left: ${rect.left}px;
-    top: ${rect.top}px;
+    position: fixed; width: ${rect.width}px;
+    left: ${rect.left}px; top: ${rect.top}px;
     transform: rotate(-3deg) scale(0.9);
-    pointer-events: none;
-    opacity: 0.88;
-    z-index: 9999;
-    transition: none;
+    pointer-events: none; opacity: 0.88; z-index: 9999; transition: none;
   `;
   touchClone.style.setProperty("--tape-color", node.style.getPropertyValue("--tape-color"));
   touchClone.style.setProperty("--cover-art",  node.style.getPropertyValue("--cover-art"));
   touchClone.style.setProperty("--tilt", "0deg");
   document.body.appendChild(touchClone);
-
   node.classList.add("dragging");
 
   document.addEventListener("touchmove",   onTouchMove,  { passive: false });
@@ -467,50 +507,38 @@ function onTouchStart(e) {
 function onTouchMove(e) {
   e.preventDefault();
   if (!touchClone) return;
-
   const touch = e.touches[0];
   touchClone.style.left = `${touch.clientX - touchOffsetX}px`;
   touchClone.style.top  = `${touch.clientY - touchOffsetY}px`;
-
-  const slotRect = vcrSlot.getBoundingClientRect();
-  const over = (
-    touch.clientX >= slotRect.left &&
-    touch.clientX <= slotRect.right &&
-    touch.clientY >= slotRect.top  &&
-    touch.clientY <= slotRect.bottom
+  const r = vcrSlot.getBoundingClientRect();
+  vcrSlot.classList.toggle("drag-over",
+    touch.clientX >= r.left && touch.clientX <= r.right &&
+    touch.clientY >= r.top  && touch.clientY <= r.bottom
   );
-  vcrSlot.classList.toggle("drag-over", over);
 }
 
 function onTouchEnd(e) {
   document.removeEventListener("touchmove",   onTouchMove);
   document.removeEventListener("touchend",    onTouchEnd);
   document.removeEventListener("touchcancel", onTouchEnd);
-
   vcrSlot.classList.remove("drag-over");
 
   if (touchClone) {
-    const touch    = e.changedTouches[0];
-    const slotRect = vcrSlot.getBoundingClientRect();
-    const dropped  = (
-      touch.clientX >= slotRect.left &&
-      touch.clientX <= slotRect.right &&
-      touch.clientY >= slotRect.top  &&
-      touch.clientY <= slotRect.bottom
+    const touch = e.changedTouches[0];
+    const r     = vcrSlot.getBoundingClientRect();
+    const dropped = (
+      touch.clientX >= r.left && touch.clientX <= r.right &&
+      touch.clientY >= r.top  && touch.clientY <= r.bottom
     );
-
     touchClone.remove();
     touchClone = null;
-
     const sourceNode = shelf.querySelector(`[data-id="${touchDragId}"]`);
     if (sourceNode) {
       sourceNode.classList.remove("dragging");
       if (!dropped) animateSnapBack(sourceNode);
     }
-
     if (dropped && touchDragId) rentTape(touchDragId);
   }
-
   touchDragId = null;
 }
 
@@ -533,8 +561,7 @@ function rentTape(id) {
 
   vcrSlot.classList.remove("loaded");
   requestAnimationFrame(() => vcrSlot.classList.add("loaded"));
-  slotLabel.textContent = currentTape.title.toUpperCase();
-
+  slotLabel.textContent  = currentTape.title.toUpperCase();
   vcrDisplay.textContent = currentTape.runtime;
   clerkLine.textContent  = `"${currentTape.title}" is due back by midnight.`;
 
@@ -547,6 +574,7 @@ function rentTape(id) {
   setTransportActive(null);
   updateTapeProgress();
   renderScene("loaded");
+  syncFullscreen();
   beep("insert");
 }
 
@@ -567,6 +595,7 @@ function renderScene(state = mode) {
     screenContent.innerHTML = `
       <p class="standby">NO TAPE</p>
       <p class="standby-small">Drag a tape to the VCR slot, or click one to rent it.</p>`;
+    syncFullscreen();
     return;
   }
 
@@ -575,26 +604,19 @@ function renderScene(state = mode) {
     return;
   }
 
-  const scene = currentTape.scenes[currentScene] || currentTape.scenes[0];
-
-  const eyebrow = scene.eyebrow
-    ? `<p class="scene-eyebrow">${escHtml(scene.eyebrow)}</p>` : "";
-  const body = scene.body
-    ? `<p>${escHtml(scene.body)}</p>` : "";
-  const list = scene.list
-    ? `<ul>${scene.list.map((item) => `<li>${escHtml(item)}</li>`).join("")}</ul>` : "";
-  const badges = scene.badges
-    ? `<div class="badge-row">${scene.badges.map((b) => `<span>${escHtml(b)}</span>`).join("")}</div>` : "";
-  const cards = scene.cards
-    ? `<div class="card-grid">${scene.cards.map((card) => `
-        <article class="project-card">
-          <strong>${escHtml(card.title)}</strong>
-          <small>${escHtml(card.meta)}</small>
-          <p>${escHtml(card.body)}</p>
-        </article>`).join("")}</div>` : "";
-  const image = scene.image
-    ? `<figure class="screen-image"><img src="${escAttr(scene.image)}" alt="${escAttr(scene.imageAlt || "")}"></figure>` : "";
-  const linksHtml = scene.links ? buildLinks(scene.links) : "";
+  const scene    = currentTape.scenes[currentScene] || currentTape.scenes[0];
+  const eyebrow  = scene.eyebrow  ? `<p class="scene-eyebrow">${escHtml(scene.eyebrow)}</p>` : "";
+  const body     = scene.body     ? `<p>${escHtml(scene.body)}</p>` : "";
+  const list     = scene.list     ? `<ul>${scene.list.map((item) => `<li>${escHtml(item)}</li>`).join("")}</ul>` : "";
+  const badges   = scene.badges   ? `<div class="badge-row">${scene.badges.map((b) => `<span>${escHtml(b)}</span>`).join("")}</div>` : "";
+  const cards    = scene.cards    ? `<div class="card-grid">${scene.cards.map((card) => `
+      <article class="project-card">
+        <strong>${escHtml(card.title)}</strong>
+        <small>${escHtml(card.meta)}</small>
+        <p>${escHtml(card.body)}</p>
+      </article>`).join("")}</div>` : "";
+  const image    = scene.image    ? `<figure class="screen-image"><img src="${escAttr(scene.image)}" alt="${escAttr(scene.imageAlt || "")}"></figure>` : "";
+  const linksHtml = scene.links   ? buildLinks(scene.links) : "";
 
   const label = state === "loaded" ? "Press play on the VCR." : state.toUpperCase();
   updateTransportDisplay(state);
@@ -610,6 +632,8 @@ function renderScene(state = mode) {
     ${linksHtml}
     ${image}
     <p class="scene-counter">${currentScene + 1} / ${currentTape.scenes.length}</p>`;
+
+  syncFullscreen();
 }
 
 function buildLinks(links) {
@@ -667,6 +691,7 @@ function setMode(nextMode) {
     renderScene("playing");
     startPlayback();
     beep("play");
+    syncFullscreen();
     return;
   }
 
@@ -676,6 +701,7 @@ function setMode(nextMode) {
     setTransportActive(controls.pause);
     renderScene("paused");
     beep("click");
+    syncFullscreen();
     return;
   }
 
@@ -687,6 +713,7 @@ function setMode(nextMode) {
     setTransportActive(controls.rewind);
     renderScene("rewinding");
     beep("rewind");
+    syncFullscreen();
     return;
   }
 
@@ -698,6 +725,7 @@ function setMode(nextMode) {
     setTransportActive(controls.fast);
     renderScene("fast-forward");
     beep("fast");
+    syncFullscreen();
   }
 }
 
@@ -710,6 +738,8 @@ function setTransportActive(activeBtn) {
     activeBtn.classList.add("transport-active");
     activeBtn.setAttribute("aria-pressed", "true");
   }
+  // Mirror to fullscreen buttons (independent visual state)
+  syncFsTransportButtons();
 }
 
 /* ─────────────────────────────────────────
@@ -737,6 +767,7 @@ function ejectTape() {
   setTransportActive(null);
   updateTapeProgress();
   renderScene();
+  syncFullscreen();
   beep("eject");
 }
 
@@ -768,22 +799,22 @@ function startPlayback() {
     clerkLine.textContent = `${currentTape.title} reached the end of the tape.`;
     setTransportActive(null);
 
-    screenContent.innerHTML = `
+    const endHtml = `
       <p class="kicker">END OF TAPE</p>
       <h2>${escHtml(currentTape.title)}</h2>
       <p>Rewind to watch it again, fast-forward to jump around, or eject and rent another tape.</p>`;
 
+    screenContent.innerHTML = endHtml;
+
     vcrDisplay.textContent = "END";
     updateTapeProgress(1);
+    syncFullscreen();
     beep("eject");
   }, scene.duration || 4500);
 }
 
 function stopPlayback() {
-  if (playbackTimer) {
-    window.clearTimeout(playbackTimer);
-    playbackTimer = null;
-  }
+  if (playbackTimer) { window.clearTimeout(playbackTimer); playbackTimer = null; }
 }
 
 /* ─────────────────────────────────────────
@@ -836,13 +867,107 @@ function applyTracking() {
   screen.style.setProperty("--tracking-opacity", distortion.toFixed(2));
   screen.style.setProperty("--tracking-shift",   `${trackingLevel * 2}px`);
   trackingLabel.textContent = `TRACKING ${trackingLevel}`;
+  // Mirror to fullscreen screen
+  fsScreen.style.setProperty("--tracking-opacity", distortion.toFixed(2));
+  fsScreen.style.setProperty("--tracking-shift",   `${trackingLevel * 2}px`);
+  fsTrackingLabel.textContent = `TRACKING ${trackingLevel}`;
 }
 
 /* ─────────────────────────────────────────
+   FULLSCREEN
+───────────────────────────────────────── */
+function openFullscreen() {
+  if (!currentTape) {
+    clerkLine.textContent = "Insert a tape before expanding.";
+    beep("error");
+    return;
+  }
+  fsOpen = true;
+  fsOverlay.setAttribute("aria-hidden", "false");
+  fsOverlay.classList.add("open");
+  // Two-frame trick: display:flex first, then opacity transition
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => fsOverlay.classList.add("fs-visible"));
+  });
+  document.body.style.overflow = "hidden";
+  syncFullscreen();
+  minimizeBtn.focus();
+  beep("play");
+}
+
+function closeFullscreen() {
+  fsOpen = false;
+  fsOverlay.classList.remove("fs-visible");
+  fsOverlay.setAttribute("aria-hidden", "true");
+  // Wait for transition before hiding
+  setTimeout(() => {
+    fsOverlay.classList.remove("open");
+    document.body.style.overflow = "";
+  }, 240);
+  expandBtn.focus();
+  beep("click");
+}
+
+function syncFullscreen() {
+  if (!fsOpen) return;
+
+  // Mirror screen state class
+  const stateClasses = ["playing", "paused", "rewinding", "fast", "has-content"];
+  fsScreen.classList.remove(...stateClasses);
+  stateClasses.forEach((cls) => {
+    if (screen.classList.contains(cls)) fsScreen.classList.add(cls);
+  });
+
+  // Mirror content
+  fsScreenContent.innerHTML = screenContent.innerHTML;
+
+  // Mirror VCR display
+  fsVcrDisplay.textContent = vcrDisplay.textContent;
+
+  // Update tape label badge
+  fsTapeLabel.textContent = currentTape ? currentTape.title.toUpperCase() : "";
+
+  syncFsTransportButtons();
+}
+
+function syncFsTransportButtons() {
+  const modeToBtn = {
+    playing:  fsControls.play,
+    paused:   fsControls.pause,
+    rewinding: fsControls.rewind,
+    fast:     fsControls.fast
+  };
+
+  [fsControls.play, fsControls.pause, fsControls.rewind, fsControls.fast].forEach((btn) => {
+    btn.classList.remove("transport-active");
+    btn.removeAttribute("aria-pressed");
+  });
+
+  const activeBtn = modeToBtn[mode];
+  if (activeBtn) {
+    activeBtn.classList.add("transport-active");
+    activeBtn.setAttribute("aria-pressed", "true");
+  }
+}
+
+// Keyboard shortcut: F = fullscreen, Esc = close
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && fsOpen) {
+    closeFullscreen();
+    return;
+  }
+  if (e.key === "f" || e.key === "F") {
+    if (!fsOpen && currentTape) openFullscreen();
+  }
+});
+
+// Click outside the shell to close
+fsOverlay.addEventListener("click", (e) => {
+  if (e.target === fsOverlay) closeFullscreen();
+});
+
+/* ─────────────────────────────────────────
    REWIND RACE — MINI-GAME
-   Three rounds, each faster. Hit STOP inside the danger
-   zone (last 3 seconds) before the counter hits 00:00.
-   3 lives. All rounds cleared → trophy. 0 lives → game over.
 ───────────────────────────────────────── */
 const GAME_ROUNDS   = 3;
 const STOP_ZONE_SEC = 3;
@@ -876,26 +1001,20 @@ function renderRewindRace() {
       <p class="kicker">BONUS GAME — REWIND RACE</p>
       <h2 style="font-size:clamp(1.6rem,4vw,2.8rem)">Stop the Tape</h2>
       <p style="font-size:0.95rem">Hit STOP inside the danger zone before the counter hits 00:00. Miss it and the tape snaps.</p>
-
       <div class="rr-display-row">
         <div class="rr-counter-box" id="rrCounter">00:18.0</div>
         <div class="rr-lives" id="rrLives">♥ ♥ ♥</div>
       </div>
-
       <div class="rr-track-wrap" aria-hidden="true">
         <div class="rr-track" id="rrTrack">
           <div class="rr-zone" id="rrZone"></div>
           <div class="rr-needle" id="rrNeedle"></div>
         </div>
         <div class="rr-track-labels">
-          <span>START</span>
-          <span>STOP ZONE</span>
-          <span>00:00 💀</span>
+          <span>START</span><span>STOP ZONE</span><span>00:00 💀</span>
         </div>
       </div>
-
       <div class="rr-round-label" id="rrRoundLabel">ROUND 1 OF ${GAME_ROUNDS}</div>
-
       <div class="action-row">
         <button id="rrStopBtn" type="button" class="rr-stop-btn">⏹ STOP</button>
       </div>
@@ -904,7 +1023,6 @@ function renderRewindRace() {
 
   injectRRStyles();
   startRRRound();
-
   document.querySelector("#rrStopBtn").addEventListener("click", onRRStop);
 }
 
@@ -913,114 +1031,43 @@ function injectRRStyles() {
   const s = document.createElement("style");
   s.id = "rr-styles";
   s.textContent = `
-    .rr-game {
-      display: grid;
-      gap: 18px;
-      width: min(480px, 100%);
-    }
-    .rr-display-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-    }
+    .rr-game { display: grid; gap: 18px; width: min(480px, 100%); }
+    .rr-display-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
     .rr-counter-box {
       font-family: "Courier New", monospace;
       font-size: clamp(2.2rem, 6vw, 3.5rem);
-      color: var(--green);
-      letter-spacing: 0.08em;
-      background: rgba(0,0,0,0.5);
-      border: 2px solid rgba(118,255,157,0.4);
-      padding: 6px 16px;
-      transition: color 200ms ease, border-color 200ms ease;
+      color: var(--green); letter-spacing: 0.08em;
+      background: rgba(0,0,0,0.5); border: 2px solid rgba(118,255,157,0.4);
+      padding: 6px 16px; transition: color 200ms ease, border-color 200ms ease;
     }
     .rr-counter-box.danger {
-      color: #ff5555;
-      border-color: rgba(255,85,85,0.6);
+      color: #ff5555; border-color: rgba(255,85,85,0.6);
       animation: rrPulse 400ms steps(2,end) infinite;
     }
-    @keyframes rrPulse {
-      0%  { opacity: 1; }
-      50% { opacity: 0.55; }
-    }
-    .rr-lives {
-      font-size: 1.4rem;
-      letter-spacing: 0.15em;
-      color: #ff5caa;
-      font-family: "Courier New", monospace;
-    }
+    @keyframes rrPulse { 0% { opacity: 1; } 50% { opacity: 0.55; } }
+    .rr-lives { font-size: 1.4rem; letter-spacing: 0.15em; color: #ff5caa; font-family: "Courier New", monospace; }
     .rr-track-wrap { display: grid; gap: 4px; }
-    .rr-track {
-      position: relative;
-      height: 28px;
-      border: 2px solid rgba(215,255,228,0.4);
-      background: rgba(0,0,0,0.45);
-      overflow: hidden;
-    }
-    .rr-zone {
-      position: absolute;
-      top: 0; bottom: 0; right: 0;
-      background: rgba(233,52,52,0.32);
-      border-left: 2px solid rgba(255,80,80,0.8);
-    }
+    .rr-track { position: relative; height: 28px; border: 2px solid rgba(215,255,228,0.4); background: rgba(0,0,0,0.45); overflow: hidden; }
+    .rr-zone  { position: absolute; top: 0; bottom: 0; right: 0; background: rgba(233,52,52,0.32); border-left: 2px solid rgba(255,80,80,0.8); }
     .rr-needle {
-      position: absolute;
-      top: 0; bottom: 0;
-      width: 3px;
-      background: var(--gold);
-      box-shadow: 0 0 8px rgba(242,212,71,0.8);
-      transition: left 90ms linear;
+      position: absolute; top: 0; bottom: 0; width: 3px;
+      background: var(--gold); box-shadow: 0 0 8px rgba(242,212,71,0.8); transition: left 90ms linear;
     }
-    .rr-track-labels {
-      display: flex;
-      justify-content: space-between;
-      font-family: "Courier New", monospace;
-      font-size: 0.68rem;
-      color: rgba(215,255,228,0.6);
-    }
-    .rr-round-label {
-      font-family: "Courier New", monospace;
-      font-size: 0.8rem;
-      color: var(--gold);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
+    .rr-track-labels { display: flex; justify-content: space-between; font-family: "Courier New", monospace; font-size: 0.68rem; color: rgba(215,255,228,0.6); }
+    .rr-round-label  { font-family: "Courier New", monospace; font-size: 0.8rem; color: var(--gold); text-transform: uppercase; letter-spacing: 0.08em; }
     .rr-stop-btn {
-      width: fit-content;
-      min-height: 48px;
-      padding: 10px 28px;
-      border: 3px solid #d7ffe4;
-      background: #0d2218;
-      color: #d7ffe4;
-      cursor: pointer;
-      text-transform: uppercase;
-      font-weight: 900;
-      font-size: 1rem;
-      letter-spacing: 0.06em;
+      width: fit-content; min-height: 48px; padding: 10px 28px;
+      border: 3px solid #d7ffe4; background: #0d2218; color: #d7ffe4; cursor: pointer;
+      text-transform: uppercase; font-weight: 900; font-size: 1rem; letter-spacing: 0.06em;
       transition: background 100ms ease, transform 80ms ease;
     }
     .rr-stop-btn:hover  { background: #1a3a28; }
     .rr-stop-btn:active { transform: translateY(2px); }
     .rr-stop-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
-    .rr-result {
-      font-family: "Courier New", monospace;
-      font-size: 0.95rem;
-      min-height: 24px;
-      color: #d7ffe4;
-    }
+    .rr-result { font-family: "Courier New", monospace; font-size: 0.95rem; min-height: 24px; color: #d7ffe4; }
     .rr-result.win  { color: var(--green); }
     .rr-result.lose { color: #ff5555; }
-    .rr-badge {
-      display: inline-block;
-      padding: 6px 12px;
-      background: var(--gold);
-      color: var(--ink);
-      font-size: 0.8rem;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      animation: sceneFadeIn 400ms ease;
-    }
+    .rr-badge { display: inline-block; padding: 6px 12px; background: var(--gold); color: var(--ink); font-size: 0.8rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; animation: sceneFadeIn 400ms ease; }
   `;
   document.head.appendChild(s);
 }
@@ -1028,16 +1075,13 @@ function injectRRStyles() {
 function startRRRound() {
   const startSecs = START_SECS[Math.min(rrRound, START_SECS.length - 1)];
   const tickMs    = TICK_MS[Math.min(rrRound, TICK_MS.length - 1)];
-
   rrCounter = startSecs * 10;
   rrActive  = true;
 
   const roundLabel = document.querySelector("#rrRoundLabel");
   if (roundLabel) roundLabel.textContent = `ROUND ${rrRound + 1} OF ${GAME_ROUNDS}`;
-
   const stopBtn = document.querySelector("#rrStopBtn");
   if (stopBtn) stopBtn.disabled = false;
-
   const result = document.querySelector("#rrResult");
   if (result) { result.textContent = ""; result.className = "rr-result"; }
 
@@ -1047,7 +1091,6 @@ function startRRRound() {
     if (!rrActive) return;
     rrCounter -= 1;
     updateRRDisplay();
-
     if (rrCounter <= 0) {
       rrActive = false;
       window.clearInterval(rrInterval);
@@ -1073,27 +1116,17 @@ function onRRStop() {
     rrScore++;
     beep("play");
     const result = document.querySelector("#rrResult");
-    if (result) {
-      result.textContent = `Nice stop! ${formatTenths(rrCounter)} left on the clock.`;
-      result.className = "rr-result win";
-    }
+    if (result) { result.textContent = `Nice stop! ${formatTenths(rrCounter)} left on the clock.`; result.className = "rr-result win"; }
     clerkLine.textContent = "The tape survives. The clerk nods.";
-    lateFee.textContent = "";
-
+    lateFee.textContent   = "";
     rrRound++;
-    if (rrRound >= GAME_ROUNDS) {
-      setTimeout(showRRVictory, 900);
-    } else {
-      setTimeout(startRRRound, 1200);
-    }
+    if (rrRound >= GAME_ROUNDS) setTimeout(showRRVictory, 900);
+    else                        setTimeout(startRRRound,  1200);
   } else if (rrCounter > stopZoneTenths) {
     rrActive = false;
     beep("error");
     const result = document.querySelector("#rrResult");
-    if (result) {
-      result.textContent = "Too early — the tape kept rolling. Try again.";
-      result.className = "rr-result lose";
-    }
+    if (result) { result.textContent = "Too early — the tape kept rolling. Try again."; result.className = "rr-result lose"; }
     loseLife("Stopped too early.");
   }
 }
@@ -1101,29 +1134,19 @@ function onRRStop() {
 function loseLife(msg) {
   rrLives--;
   beep("error");
-
   const livesEl = document.querySelector("#rrLives");
   if (livesEl) {
     const hearts = "♥ ".repeat(Math.max(0, rrLives)).trim();
     const dead   = "♡ ".repeat(Math.max(0, 3 - rrLives)).trim();
     livesEl.textContent = (hearts + " " + dead).trim();
   }
-
   const result = document.querySelector("#rrResult");
-  if (result) {
-    result.textContent = msg;
-    result.className = "rr-result lose";
-  }
-
+  if (result) { result.textContent = msg; result.className = "rr-result lose"; }
   clerkLine.textContent = "The tape is not pleased.";
   fee++;
   lateFee.textContent = `LATE FEE: $${fee}.97`;
-
-  if (rrLives <= 0) {
-    setTimeout(showRRGameOver, 900);
-  } else {
-    setTimeout(() => { if (!rrActive) startRRRound(); }, 1400);
-  }
+  if (rrLives <= 0) setTimeout(showRRGameOver, 900);
+  else              setTimeout(() => { if (!rrActive) startRRRound(); }, 1400);
 }
 
 function showRRVictory() {
@@ -1138,7 +1161,7 @@ function showRRVictory() {
         <button id="rrPlayAgainBtn" type="button" class="rr-stop-btn">Play Again</button>
       </div>
     </div>`;
-  lateFee.textContent = "";
+  lateFee.textContent   = "";
   clerkLine.textContent = "Not bad. Not bad at all.";
   beep("play");
   document.querySelector("#rrPlayAgainBtn").addEventListener("click", renderRewindRace);
@@ -1173,7 +1196,6 @@ function updateRRDisplay() {
 
   counter.textContent = formatTenths(rrCounter);
   counter.classList.toggle("danger", rrCounter > 0 && rrCounter <= STOP_ZONE_SEC * 10);
-
   needle.style.left = `${Math.min(99, progress * 100)}%`;
   if (zone) zone.style.width = `${zoneWidth}%`;
 }
@@ -1198,16 +1220,14 @@ function updateClock() {
 /* ─────────────────────────────────────────
    IDLE / LATE FEE
 ───────────────────────────────────────── */
-function recordUserAction() {
-  lastUserAction = Date.now();
-}
+function recordUserAction() { lastUserAction = Date.now(); }
 
 function checkLateFee() {
   if (!currentTape) return;
   const idleSeconds = Math.floor((Date.now() - lastUserAction) / 1000);
   if (idleSeconds > 35) {
     fee += 1;
-    lateFee.textContent = `LATE FEE: $${fee}.97`;
+    lateFee.textContent   = `LATE FEE: $${fee}.97`;
     clerkLine.textContent = "You are now emotionally overdue.";
     beep("error");
   }
@@ -1227,7 +1247,6 @@ function beep(type) {
   const osc  = ctx.createOscillator();
   const gain = ctx.createGain();
   const now  = ctx.currentTime;
-
   const frequencies = {
     insert: [90,  160],
     eject:  [160,  80],
@@ -1237,7 +1256,6 @@ function beep(type) {
     fast:   [180, 520],
     error:  [70,   60]
   };
-
   const [start, end] = frequencies[type] || frequencies.click;
   osc.type = type === "error" ? "sawtooth" : "square";
   osc.frequency.setValueAtTime(start, now);
@@ -1252,7 +1270,6 @@ function beep(type) {
 
 function toggleAmbience() {
   const ctx = getAudio();
-
   if (ambienceNode) {
     ambienceNode.stop();
     ambienceNode = null;
@@ -1260,14 +1277,10 @@ function toggleAmbience() {
     ambienceToggle.setAttribute("aria-pressed", "false");
     return;
   }
-
   const bufferSize = ctx.sampleRate * 2;
   const buffer     = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
   const data       = buffer.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) {
-    data[i] = (Math.random() * 2 - 1) * 0.22;
-  }
-
+  for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.22;
   ambienceNode            = ctx.createBufferSource();
   ambienceGain            = ctx.createGain();
   ambienceGain.gain.value = 0.035;
@@ -1275,13 +1288,12 @@ function toggleAmbience() {
   ambienceNode.loop       = true;
   ambienceNode.connect(ambienceGain).connect(ctx.destination);
   ambienceNode.start();
-
   ambienceToggle.classList.add("active");
   ambienceToggle.setAttribute("aria-pressed", "true");
 }
 
 /* ─────────────────────────────────────────
-   EVENT LISTENERS
+   EVENT LISTENERS — MAIN VCR
 ───────────────────────────────────────── */
 controls.play.addEventListener("click",         () => setMode("playing"));
 controls.pause.addEventListener("click",        () => setMode("paused"));
@@ -1291,6 +1303,23 @@ controls.eject.addEventListener("click",        ejectTape);
 controls.trackingDown.addEventListener("click", () => adjustTracking(-1));
 controls.trackingUp.addEventListener("click",   () => adjustTracking(1));
 ambienceToggle.addEventListener("click",        toggleAmbience);
+
+/* ── Expand button ── */
+expandBtn.addEventListener("click", openFullscreen);
+
+/* ─────────────────────────────────────────
+   EVENT LISTENERS — FULLSCREEN VCR
+   These call the same setMode / ejectTape / adjustTracking
+   functions so state stays fully in sync.
+───────────────────────────────────────── */
+fsControls.play.addEventListener("click",         () => setMode("playing"));
+fsControls.pause.addEventListener("click",        () => setMode("paused"));
+fsControls.rewind.addEventListener("click",       () => setMode("rewinding"));
+fsControls.fast.addEventListener("click",         () => setMode("fast"));
+fsControls.eject.addEventListener("click",        ejectTape);
+fsControls.trackingDown.addEventListener("click", () => adjustTracking(-1));
+fsControls.trackingUp.addEventListener("click",   () => adjustTracking(1));
+minimizeBtn.addEventListener("click",             closeFullscreen);
 
 /* ─────────────────────────────────────────
    INIT
