@@ -196,6 +196,54 @@ const tapes = [
         duration: 5000
       },
       {
+        heading: "Pulse",
+        eyebrow: "Real-time Analytics Dashboard · TypeScript",
+        body: "Live event stream ingestion, anomaly detection, and AI-assisted insight summaries for production-grade data pipelines.",
+        image: "assets/pulse.PNG",
+        imageAlt: "Pulse — real-time analytics dashboard",
+        duration: 5000
+      },
+      {
+        heading: "Taskflow",
+        eyebrow: "AI Workflow Manager · TypeScript",
+        body: "Kanban-style task and workflow OS with AI-assisted planning, sprint velocity tracking, and blocker prediction.",
+        image: "assets/taskflow.PNG",
+        imageAlt: "Taskflow — AI workflow manager",
+        duration: 5000
+      },
+      {
+        heading: "AI Form Builder",
+        eyebrow: "Dynamic Form Generation · TypeScript",
+        body: "Describe the form in plain language — Claude drafts the fields, validation rules, and conditional logic. Embeds anywhere.",
+        image: "assets/formbuilder.PNG",
+        imageAlt: "AI Form Builder — dynamic form generation",
+        duration: 5000
+      },
+      {
+        heading: "CSV Importer",
+        eyebrow: "Data Validation & Import · TypeScript",
+        body: "Schema inference, row-level validation, type coercion, and clean PostgreSQL loading with per-cell error reporting.",
+        image: "assets/csvimporter.PNG",
+        imageAlt: "CSV Importer — data validation and import",
+        duration: 5000
+      },
+      {
+        heading: "Invoice Generator",
+        eyebrow: "PDF Invoicing · TypeScript",
+        body: "Claude reads your work log and fills the line items. Polished, client-ready PDF invoices in seconds.",
+        image: "assets/invoicegen.PNG",
+        imageAlt: "Invoice Generator — PDF invoicing tool",
+        duration: 5000
+      },
+      {
+        heading: "Marketplace",
+        eyebrow: "E-commerce Platform · TypeScript",
+        body: "AI-assisted buyer-seller matching, product discovery, payments, and analytics in one platform.",
+        image: "assets/marketplace.PNG",
+        imageAlt: "Marketplace — e-commerce platform",
+        duration: 5000
+      },
+      {
         heading: "GitHub Proof",
         body: "Active TypeScript repos, visible contribution history, and pinned projects that map to SaaS product primitives.",
         image: "assets/github-profile.png",
@@ -290,15 +338,14 @@ function renderShelf() {
 /* ─────────────────────────────────────────
    DRAG & DROP — HTML5
 ───────────────────────────────────────── */
-let dragGhost = null;   // detached ghost node
-let draggingId = null;  // tape id being dragged
+let dragGhost  = null;
+let draggingId = null;
 
 function onTapeDragStart(e) {
   const node = e.currentTarget;
   draggingId = node.dataset.id;
   node.classList.add("dragging");
 
-  // Custom ghost: clone the tape card, shrink it slightly
   dragGhost = node.cloneNode(true);
   dragGhost.style.cssText = `
     position: fixed;
@@ -311,7 +358,6 @@ function onTapeDragStart(e) {
     z-index: 9999;
     border-radius: 2px;
   `;
-  // Preserve custom properties on the ghost
   dragGhost.style.setProperty("--tape-color", node.style.getPropertyValue("--tape-color"));
   dragGhost.style.setProperty("--cover-art",  node.style.getPropertyValue("--cover-art"));
   dragGhost.style.setProperty("--tilt", "0deg");
@@ -326,13 +372,11 @@ function onTapeDragEnd(e) {
   const node = e.currentTarget;
   node.classList.remove("dragging");
 
-  // Remove ghost
   if (dragGhost) {
     dragGhost.remove();
     dragGhost = null;
   }
 
-  // If drop didn't land on the slot, animate snap-back
   if (e.dataTransfer.dropEffect === "none") {
     animateSnapBack(node);
   }
@@ -341,7 +385,6 @@ function onTapeDragEnd(e) {
 }
 
 function animateSnapBack(node) {
-  // Brief "bounce" class — you can add a @keyframes snapBack in CSS if you like
   node.style.transition = "transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)";
   node.style.transform  = "translateY(-12px) rotate(0deg)";
   requestAnimationFrame(() => {
@@ -360,7 +403,6 @@ vcrSlot.addEventListener("dragover", (e) => {
 });
 
 vcrSlot.addEventListener("dragleave", (e) => {
-  // Only remove highlight if leaving the slot entirely
   if (!vcrSlot.contains(e.relatedTarget)) {
     vcrSlot.classList.remove("drag-over");
   }
@@ -372,23 +414,20 @@ vcrSlot.addEventListener("drop", (e) => {
 
   const id = e.dataTransfer.getData("text/plain") || draggingId;
   if (id) {
-    // Mark the drop as accepted so dragend doesn't snap back
     e.dataTransfer.dropEffect = "move";
     rentTape(id);
   }
 });
 
-/* ─── Also allow dragging the slot label out to eject ─── */
-vcrSlot.setAttribute("draggable", "false"); // slot itself is not a draggable source
-// (Eject-by-drag would need the loaded tape slug as the draggable — added below in rentTape)
+vcrSlot.setAttribute("draggable", "false");
 
 /* ─────────────────────────────────────────
    DRAG & DROP — TOUCH (mobile fallback)
 ───────────────────────────────────────── */
-let touchDragId    = null;
-let touchClone     = null;
-let touchOffsetX   = 0;
-let touchOffsetY   = 0;
+let touchDragId  = null;
+let touchClone   = null;
+let touchOffsetX = 0;
+let touchOffsetY = 0;
 
 function onTouchStart(e) {
   if (e.touches.length !== 1) return;
@@ -401,7 +440,6 @@ function onTouchStart(e) {
   touchOffsetX = touch.clientX - rect.left;
   touchOffsetY = touch.clientY - rect.top;
 
-  // Clone to follow finger
   touchClone = node.cloneNode(true);
   touchClone.style.cssText = `
     position: fixed;
@@ -421,9 +459,9 @@ function onTouchStart(e) {
 
   node.classList.add("dragging");
 
-  document.addEventListener("touchmove",  onTouchMove,  { passive: false });
-  document.addEventListener("touchend",   onTouchEnd);
-  document.addEventListener("touchcancel",onTouchEnd);
+  document.addEventListener("touchmove",   onTouchMove,  { passive: false });
+  document.addEventListener("touchend",    onTouchEnd);
+  document.addEventListener("touchcancel", onTouchEnd);
 }
 
 function onTouchMove(e) {
@@ -434,7 +472,6 @@ function onTouchMove(e) {
   touchClone.style.left = `${touch.clientX - touchOffsetX}px`;
   touchClone.style.top  = `${touch.clientY - touchOffsetY}px`;
 
-  // Highlight slot if finger is over it
   const slotRect = vcrSlot.getBoundingClientRect();
   const over = (
     touch.clientX >= slotRect.left &&
@@ -446,9 +483,9 @@ function onTouchMove(e) {
 }
 
 function onTouchEnd(e) {
-  document.removeEventListener("touchmove",  onTouchMove);
-  document.removeEventListener("touchend",   onTouchEnd);
-  document.removeEventListener("touchcancel",onTouchEnd);
+  document.removeEventListener("touchmove",   onTouchMove);
+  document.removeEventListener("touchend",    onTouchEnd);
+  document.removeEventListener("touchcancel", onTouchEnd);
 
   vcrSlot.classList.remove("drag-over");
 
@@ -465,7 +502,6 @@ function onTouchEnd(e) {
     touchClone.remove();
     touchClone = null;
 
-    // Restore source tape appearance
     const sourceNode = shelf.querySelector(`[data-id="${touchDragId}"]`);
     if (sourceNode) {
       sourceNode.classList.remove("dragging");
@@ -581,9 +617,9 @@ function buildLinks(links) {
   row.className = "link-row";
   links.forEach((link) => {
     const a = document.createElement("a");
-    a.href   = link.href;
-    a.target = "_blank";
-    a.rel    = "noreferrer noopener";
+    a.href        = link.href;
+    a.target      = "_blank";
+    a.rel         = "noreferrer noopener";
     a.textContent = link.label;
     row.appendChild(a);
   });
@@ -692,7 +728,7 @@ function ejectTape() {
   document.querySelectorAll(".tape").forEach((node) => node.classList.remove("rented"));
 
   vcrSlot.classList.remove("loaded");
-  slotLabel.textContent = "INSERT TAPE";
+  slotLabel.textContent  = "INSERT TAPE";
   vcrDisplay.textContent = "--:--";
   clerkLine.textContent  = "Tape returned. Shelf's open.";
   screen.className = "screen paused";
@@ -723,6 +759,7 @@ function startPlayback() {
       return;
     }
 
+    // End of tape
     mode      = "paused";
     tapeEnded = true;
     screen.classList.remove("playing");
@@ -803,28 +840,25 @@ function applyTracking() {
 
 /* ─────────────────────────────────────────
    REWIND RACE — MINI-GAME
-   ─────────────────────────────────────────
-   Three rounds. Each round: a counter races toward 00:00.
-   Speed increases each round. Hit STOP in the danger zone
-   (the last 3 seconds) without hitting 00:00 or the tape
-   snaps and you lose a life.
-   Score 3 perfect stops → trophy. Lose all lives → game over.
+   Three rounds, each faster. Hit STOP inside the danger
+   zone (last 3 seconds) before the counter hits 00:00.
+   3 lives. All rounds cleared → trophy. 0 lives → game over.
 ───────────────────────────────────────── */
-const GAME_ROUNDS   = 3;        // rounds per session
-const STOP_ZONE_SEC = 3;        // seconds before 00:00 that count as "good"
-const START_SECS    = [18, 14, 10]; // counter starts for each round (gets faster)
-const TICK_MS       = [100, 80, 55]; // tick intervals per round (faster = harder)
+const GAME_ROUNDS   = 3;
+const STOP_ZONE_SEC = 3;
+const START_SECS    = [18, 14, 10];
+const TICK_MS       = [100, 80, 55];
 
 let rrRound    = 0;
 let rrLives    = 3;
 let rrScore    = 0;
-let rrCounter  = 0;   // tenths of a second remaining
+let rrCounter  = 0;
 let rrInterval = null;
 let rrActive   = false;
 
 function stopGame() {
   rrActive = false;
-  if (gameTimer) { window.clearInterval(gameTimer); gameTimer = null; }
+  if (gameTimer)  { window.clearInterval(gameTimer);  gameTimer  = null; }
   if (rrInterval) { window.clearInterval(rrInterval); rrInterval = null; }
 }
 
@@ -844,7 +878,7 @@ function renderRewindRace() {
       <p style="font-size:0.95rem">Hit STOP inside the danger zone before the counter hits 00:00. Miss it and the tape snaps.</p>
 
       <div class="rr-display-row">
-        <div class="rr-counter-box" id="rrCounter">00:18</div>
+        <div class="rr-counter-box" id="rrCounter">00:18.0</div>
         <div class="rr-lives" id="rrLives">♥ ♥ ♥</div>
       </div>
 
@@ -855,7 +889,7 @@ function renderRewindRace() {
         </div>
         <div class="rr-track-labels">
           <span>START</span>
-          <span id="rrZoneLabel">STOP ZONE</span>
+          <span>STOP ZONE</span>
           <span>00:00 💀</span>
         </div>
       </div>
@@ -875,7 +909,6 @@ function renderRewindRace() {
 }
 
 function injectRRStyles() {
-  // Only inject once per page
   if (document.querySelector("#rr-styles")) return;
   const s = document.createElement("style");
   s.id = "rr-styles";
@@ -916,10 +949,7 @@ function injectRRStyles() {
       color: #ff5caa;
       font-family: "Courier New", monospace;
     }
-    .rr-track-wrap {
-      display: grid;
-      gap: 4px;
-    }
+    .rr-track-wrap { display: grid; gap: 4px; }
     .rr-track {
       position: relative;
       height: 28px;
@@ -929,11 +959,9 @@ function injectRRStyles() {
     }
     .rr-zone {
       position: absolute;
-      top: 0; bottom: 0;
-      right: 0;
-      background: rgba(233, 52, 52, 0.32);
+      top: 0; bottom: 0; right: 0;
+      background: rgba(233,52,52,0.32);
       border-left: 2px solid rgba(255,80,80,0.8);
-      transition: background 180ms ease;
     }
     .rr-needle {
       position: absolute;
@@ -971,13 +999,9 @@ function injectRRStyles() {
       letter-spacing: 0.06em;
       transition: background 100ms ease, transform 80ms ease;
     }
-    .rr-stop-btn:hover { background: #1a3a28; }
+    .rr-stop-btn:hover  { background: #1a3a28; }
     .rr-stop-btn:active { transform: translateY(2px); }
-    .rr-stop-btn:disabled {
-      opacity: 0.35;
-      cursor: not-allowed;
-      transform: none;
-    }
+    .rr-stop-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
     .rr-result {
       font-family: "Courier New", monospace;
       font-size: 0.95rem;
@@ -1005,7 +1029,7 @@ function startRRRound() {
   const startSecs = START_SECS[Math.min(rrRound, START_SECS.length - 1)];
   const tickMs    = TICK_MS[Math.min(rrRound, TICK_MS.length - 1)];
 
-  rrCounter = startSecs * 10; // store in tenths
+  rrCounter = startSecs * 10;
   rrActive  = true;
 
   const roundLabel = document.querySelector("#rrRoundLabel");
@@ -1021,12 +1045,10 @@ function startRRRound() {
 
   rrInterval = window.setInterval(() => {
     if (!rrActive) return;
-
     rrCounter -= 1;
     updateRRDisplay();
 
     if (rrCounter <= 0) {
-      // Tape snapped — counter hit zero
       rrActive = false;
       window.clearInterval(rrInterval);
       rrInterval = null;
@@ -1044,14 +1066,10 @@ function onRRStop() {
   const stopBtn = document.querySelector("#rrStopBtn");
   if (stopBtn) stopBtn.disabled = true;
 
-  const startSecs    = START_SECS[Math.min(rrRound, START_SECS.length - 1)];
-  const totalTenths  = startSecs * 10;
   const stopZoneTenths = STOP_ZONE_SEC * 10;
-
   const inZone = rrCounter > 0 && rrCounter <= stopZoneTenths;
 
   if (inZone) {
-    // Perfect stop
     rrScore++;
     beep("play");
     const result = document.querySelector("#rrResult");
@@ -1064,13 +1082,11 @@ function onRRStop() {
 
     rrRound++;
     if (rrRound >= GAME_ROUNDS) {
-      // All rounds cleared
       setTimeout(showRRVictory, 900);
     } else {
       setTimeout(startRRRound, 1200);
     }
   } else if (rrCounter > stopZoneTenths) {
-    // Stopped too early
     rrActive = false;
     beep("error");
     const result = document.querySelector("#rrResult");
@@ -1106,9 +1122,7 @@ function loseLife(msg) {
   if (rrLives <= 0) {
     setTimeout(showRRGameOver, 900);
   } else {
-    setTimeout(() => {
-      if (!rrActive) startRRRound();
-    }, 1400);
+    setTimeout(() => { if (!rrActive) startRRRound(); }, 1400);
   }
 }
 
@@ -1149,34 +1163,23 @@ function showRRGameOver() {
 function updateRRDisplay() {
   const counter = document.querySelector("#rrCounter");
   const needle  = document.querySelector("#rrNeedle");
-  const track   = document.querySelector("#rrTrack");
-  if (!counter || !needle || !track) return;
+  const zone    = document.querySelector("#rrZone");
+  if (!counter || !needle) return;
 
-  const startSecs     = START_SECS[Math.min(rrRound, START_SECS.length - 1)];
-  const totalTenths   = startSecs * 10;
-  const zoneWidth     = (STOP_ZONE_SEC / startSecs) * 100;   // % of track width
-  const progress      = 1 - Math.max(0, rrCounter) / totalTenths; // 0→1 as counter goes down
-  const needleLeft    = progress * 100;
+  const startSecs   = START_SECS[Math.min(rrRound, START_SECS.length - 1)];
+  const totalTenths = startSecs * 10;
+  const zoneWidth   = (STOP_ZONE_SEC / startSecs) * 100;
+  const progress    = 1 - Math.max(0, rrCounter) / totalTenths;
 
   counter.textContent = formatTenths(rrCounter);
+  counter.classList.toggle("danger", rrCounter > 0 && rrCounter <= STOP_ZONE_SEC * 10);
 
-  const inDanger = rrCounter > 0 && rrCounter <= STOP_ZONE_SEC * 10;
-  counter.classList.toggle("danger", inDanger);
-
-  needle.style.left = `${Math.min(99, needleLeft)}%`;
-
-  // Zone sits at the right end of the track
-  const zone = document.querySelector("#rrZone");
+  needle.style.left = `${Math.min(99, progress * 100)}%`;
   if (zone) zone.style.width = `${zoneWidth}%`;
-
-  // Update ARIA on track if present
-  if (track.getAttribute("role") === "progressbar") {
-    track.setAttribute("aria-valuenow", Math.round(rrCounter / 10));
-  }
 }
 
 function formatTenths(tenths) {
-  const t = Math.max(0, tenths);
+  const t       = Math.max(0, tenths);
   const secs    = Math.floor(t / 10);
   const tenth   = t % 10;
   const minutes = Math.floor(secs / 60);
@@ -1265,11 +1268,11 @@ function toggleAmbience() {
     data[i] = (Math.random() * 2 - 1) * 0.22;
   }
 
-  ambienceNode        = ctx.createBufferSource();
-  ambienceGain        = ctx.createGain();
+  ambienceNode            = ctx.createBufferSource();
+  ambienceGain            = ctx.createGain();
   ambienceGain.gain.value = 0.035;
-  ambienceNode.buffer = buffer;
-  ambienceNode.loop   = true;
+  ambienceNode.buffer     = buffer;
+  ambienceNode.loop       = true;
   ambienceNode.connect(ambienceGain).connect(ctx.destination);
   ambienceNode.start();
 
