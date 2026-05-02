@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Proactive Autonomous Agents in Nearby Vibes — Mwiko</title>
+  <meta name="description" content="Most agents are reactive. The interesting version is proactive — the system notices something, decides it is worth acting on, and moves before the user asks.">
+  <meta property="og:title" content="Proactive Autonomous Agents in Nearby Vibes">
+  <meta property="og:description" content="The most powerful action an agent can take is sometimes deciding to do nothing.">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="blog.css">
+</head>
+<body>
+<article class="blog-shell">
+
+  <a href="../index.html" class="blog-back">◀◀ Back to the store</a>
+
+  <header class="blog-header">
+    <span class="blog-tape-label label-red">After Hours</span>
+    <span class="blog-eyebrow">Autonomous Agents · APScheduler · Telegram · Proactive AI</span>
+    <h1 class="blog-title">Proactive Autonomous Agents in Nearby Vibes</h1>
+    <div class="blog-meta">
+      <span>Mwiko Sinyangwe</span>
+      <span class="blog-meta-dot">·</span>
+      <span>Nearby Vibes</span>
+      <span class="blog-meta-dot">·</span>
+      <span>Build notes</span>
+    </div>
+  </header>
+
+  <hr class="blog-divider">
+
+  <div class="blog-body">
+
+    <p>Most agents are reactive. A user asks a question, the agent responds, and the loop ends.</p>
+
+    <p>The more interesting version is proactive: the system notices something, decides it is worth acting on, and reaches out or prepares work before the user asks. That is a fundamentally different product — and a fundamentally harder engineering problem.</p>
+
+    <p>Nearby Vibes started as a conversational product. But the parts that felt most agentic were not chat responses. They were scheduled jobs, Telegram nudges, and nightly BI workflows running in the background.</p>
+
+    <h2>Reactive vs Proactive</h2>
+
+    <p>A reactive agent waits:</p>
+
+    <blockquote><p>User: "Find me dinner nearby." → Agent searches, ranks, replies.</p></blockquote>
+
+    <p>A proactive agent has a standing job:</p>
+
+    <blockquote><p>It is Friday at 5:30pm. This user often asks for casual dinner options around this time. The weather is bad. Their usual spot is closed tonight. Prepare three alternatives and send a light nudge if they have opted in.</p></blockquote>
+
+    <p>That second system is much harder because it has to answer questions the user never asked: Is this useful right now? Is the confidence high enough to act on? Has the user opted in? How recently did we nudge them? What should happen if the recommendation turns out to be wrong?</p>
+
+    <h2>The Architecture</h2>
+
+    <p>The proactive layer had three main parts: scheduled jobs, decision logic, and delivery tools. APScheduler handled recurring work. The application handled judgment.</p>
+
+<pre><code>from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+scheduler = AsyncIOScheduler(timezone="UTC")
+
+scheduler.add_job(
+    run_evening_nudge_scan,
+    trigger="cron",
+    hour="16-20",
+    minute="*/15",
+    id="evening_nudge_scan",
+    replace_existing=True,
+)
+
+scheduler.add_job(
+    run_nightly_bi_summary,
+    trigger="cron",
+    hour=2,
+    minute=0,
+    id="nightly_bi_summary",
+    replace_existing=True,
+)
+
+scheduler.start()</code></pre>
+
+    <p>The scheduler should not contain product intelligence. Its job is to wake up the right workflow at the right time. The workflow decides whether anything deserves to happen.</p>
+
+    <h2>Telegram Nudges</h2>
+
+    <p>Nudges were the clearest proactive feature. The system looked for situations where a message might be genuinely useful — user opted in, local time is reasonable, there is a relevant condition (weather, closure, new venue nearby, pattern match), and the user has not been nudged too recently.</p>
+
+<pre><code>async def run_evening_nudge_scan():
+    users = await load_users_eligible_for_nudges()
+
+    for user in users:
+        context = await build_nudge_context(user)
+        decision = await should_send_nudge(user, context)
+
+        if not decision.should_send:
+            await log_skipped_nudge(user.id, decision.reason)
+            continue
+
+        message = await draft_nudge_message(user, context)
+        await send_telegram_message(user.telegram_chat_id, message)
+        await record_nudge_sent(user.id, decision.reason)</code></pre>
+
+    <p>The critical function is <code>should_send_nudge</code>. That is where product restraint lives:</p>
+
+<pre><code>async def should_send_nudge(user, context) -> NudgeDecision:
+    if not user.telegram_opted_in:
+        return NudgeDecision(False, "not_opted_in")
+
+    if context.local_hour &lt; 10 or context.local_hour &gt; 21:
+        return NudgeDecision(False, "quiet_hours")
+
+    if context.nudges_sent_last_7_days &gt;= 2:
+        return NudgeDecision(False, "frequency_cap")
+
+    if not context.has_strong_recommendation:
+        return NudgeDecision(False, "low_confidence")
+
+    if context.days_since_last_app_open &gt; 14:
+        return NudgeDecision(False, "user_inactive")
+
+    return NudgeDecision(True, "timely_recommendation")</code></pre>
+
+    <p>The agent can draft the message. It should not decide whether sending it is appropriate. That decision belongs in explicit, auditable application logic — not in a model call.</p>
+
+    <h2>Nightly BI</h2>
+
+    <p>Nightly BI was proactive in a different direction. It did not message users. It prepared operational intelligence for the product team.</p>
+
+    <p>The workflow pulled the day's events, aggregated usage, tool calls, recommendation outcomes, and failure patterns, asked the model to summarize notable signals, and stored the result:</p>
+
+<pre><code>async def run_nightly_bi_summary():
+    events  = await load_events_for_previous_day()
+    metrics = aggregate_product_metrics(events)
+    summary = await summarize_metrics_with_model(metrics)
+
+    await save_bi_summary(
+        date=metrics.date,
+        metrics=metrics,
+        summary=summary,
+    )</code></pre>
+
+    <p>The model was useful here because product telemetry is noisy. A good summary could surface things like:</p>
+
+<pre><code>Search quality degraded for late-night requests — most
+returned venues were already closed at time of query.
+
+Tool timeout rate increased after 8pm local time.
+
+Users asked follow-up questions about vegetarian options
+more frequently than the previous week.
+
+Recommend: check venue hours data freshness and review
+evening search radius defaults.</code></pre>
+
+    <p>That is not just reporting. It is the system preparing tomorrow's work.</p>
+
+    <h2>The Autonomy Ladder</h2>
+
+    <p>Autonomy is not a single switch. I think of it as a ladder:</p>
+
+    <ul>
+      <li><strong>Level 1:</strong> System drafts something. A human reviews and sends it.</li>
+      <li><strong>Level 2:</strong> System sends low-risk messages under strict, explicit rules.</li>
+      <li><strong>Level 3:</strong> System takes reversible actions — saves a memory, creates a reminder, updates a preference.</li>
+      <li><strong>Level 4:</strong> System takes consequential actions — books, purchases, contacts other parties on the user's behalf.</li>
+    </ul>
+
+    <p>Nearby Vibes stayed mostly at Levels 2 and 3. That was intentional. Food recommendations, nudges, and summaries are useful, but they should not create surprise obligations for users. Level 4 autonomy needs much stronger trust infrastructure — explicit delegation, reversible actions, clear audit trails, and easy correction paths.</p>
+
+    <h2>Where Autonomous Agents Break Down</h2>
+
+    <p><strong>Acting without enough signal.</strong> A proactive agent needs a meaningful reason to act, not just an available opportunity. Sending a nudge because it is 6pm and the user has not opened the app is noise. Sending one because their usual spot is unexpectedly closed and there is a strong alternative nearby is useful.</p>
+
+    <p><strong>Stale context.</strong> The context that drives proactive decisions decays. A user's dinner-time patterns from two months ago may not reflect their life today. Proactive decisions need recency checks, not just preference checks.</p>
+
+    <p><strong>Frequency without restraint.</strong> The first nudge feels helpful. The fifth one this week feels like an app that does not respect attention. Frequency caps are not optional — they are what makes proactive features feel considerate rather than aggressive.</p>
+
+    <p><strong>No explanation trail.</strong> If a proactive action causes a problem — wrong recommendation, bad timing, intrusive message — the user (and the product team) needs to be able to understand why it happened. Every proactive action should have a logged reason that a human can read.</p>
+
+    <h2>The Primitives That Make It Work</h2>
+
+    <p>The technical implementation is not exotic. A scheduler wakes up jobs. Jobs collect context. The model classifies, summarizes, or drafts. Tools deliver the result. What makes it trustworthy is the guardrail layer:</p>
+
+    <ul>
+      <li>Explicit opt-in for any user-facing proactive feature</li>
+      <li>Quiet hours that cannot be overridden by any model decision</li>
+      <li>Frequency caps per user per feature per time window</li>
+      <li>Confidence thresholds before any message is drafted</li>
+      <li>Audit logs with human-readable reasons for every action taken and skipped</li>
+      <li>Easy opt-out that the system respects immediately</li>
+    </ul>
+
+  </div>
+
+  <div class="blog-takeaway">
+    <span class="blog-takeaway-label">Takeaway</span>
+    <p>The future of agents is not better chat boxes. It is systems that can watch, prepare, and occasionally act at the right moment. But proactive does not mean pushy. The best autonomous agents understand timing, permission, and silence. <strong>The most powerful action an agent can take is sometimes deciding to do nothing.</strong></p>
+  </div>
+
+  <nav class="blog-series" aria-label="After Hours series">
+    <p class="blog-series-title">After Hours — All Posts</p>
+    <ul class="blog-series-list">
+      <li><a href="pgvector.html">How I Built Agent Memory with pgvector</a></li>
+      <li><a href="prompt-caching.html">What Prompt Caching Changed in Production Cost</a></li>
+      <li><a href="langchain.html">LangChain: What I Used, What I Did Not, and Why</a></li>
+      <li><a href="rag.html">RAG Lessons From Building Retrieval Into Products</a></li>
+      <li><a href="tool-use.html">Tooling Lessons From Claude Tool Use</a></li>
+      <li><a href="proactive-agents.html" class="current">Proactive Autonomous Agents in Nearby Vibes</a></li>
+    </ul>
+  </nav>
+
+  <footer class="blog-footer">
+    <a href="../index.html" class="blog-footer-back">◀◀ Back to the store</a>
+    <span class="blog-footer-series">Mwiko Video Club — After Hours</span>
+  </footer>
+
+</article>
+</body>
+</html>
