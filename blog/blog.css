@@ -1,0 +1,392 @@
+/* ─────────────────────────────────────────
+   BLOG.CSS — Mwiko Video Club: After Hours
+   Shared stylesheet for all blog post pages
+───────────────────────────────────────── */
+
+:root {
+  color-scheme: dark;
+  --blue:    #1154a4;
+  --gold:    #f2d447;
+  --red:     #e93434;
+  --ink:     #11131b;
+  --screen:  #17201d;
+  --green:   #76ff9d;
+  --pink:    #ff5caa;
+  --cyan:    #65e8ff;
+  --paper:   #f8e8bc;
+  --shadow:  rgba(0, 0, 0, 0.45);
+  --prose-max: 68ch;
+  font-family: "Trebuchet MS", "Arial Narrow", Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: light) {
+  :root { color-scheme: dark; }
+  body {
+    background:
+      radial-gradient(circle at 14% 16%, rgba(255,230,93,0.18), transparent 26%),
+      linear-gradient(140deg, #0b1224 0%, #182751 42%, #5a1728 100%) !important;
+    color: #fff7d1 !important;
+  }
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { min-height: 100%; margin: 0; }
+
+body {
+  background:
+    radial-gradient(circle at 14% 16%, rgba(255,230,93,0.18), transparent 26%),
+    linear-gradient(140deg, #0b1224 0%, #182751 42%, #5a1728 100%);
+  color: #fff7d1;
+  overflow-x: hidden;
+  line-height: 1.65;
+}
+
+/* ── CRT noise overlay ── */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: 0;
+  opacity: 0.035;
+  background-image:
+    radial-gradient(circle, #fff 0 1px, transparent 1px),
+    radial-gradient(circle, #000 0 1px, transparent 1px);
+  background-size: 5px 5px, 7px 7px;
+  animation: noise 260ms steps(2, end) infinite;
+  pointer-events: none;
+}
+
+@keyframes noise {
+  0%   { transform: translate3d(0px, 0px, 0); }
+  100% { transform: translate3d(22px, -18px, 0); }
+}
+
+/* ── Shell ── */
+.blog-shell {
+  position: relative;
+  z-index: 1;
+  width: min(var(--prose-max), calc(100% - 40px));
+  margin: 0 auto;
+  padding: 32px 0 80px;
+}
+
+/* ── Back nav ── */
+.blog-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 40px;
+  padding: 8px 14px;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(0,0,0,0.38);
+  color: rgba(255,247,209,0.75);
+  font-family: "Courier New", monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.blog-back:hover {
+  background: rgba(118,255,157,0.12);
+  color: var(--green);
+  border-color: rgba(118,255,157,0.4);
+}
+
+/* ── Tape label header ── */
+.blog-tape-label {
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 4px 10px;
+  background: var(--pink);
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.blog-tape-label.label-blue  { background: var(--cyan);  color: var(--ink); }
+.blog-tape-label.label-gold  { background: var(--gold);  color: var(--ink); }
+.blog-tape-label.label-green { background: var(--green); color: var(--ink); }
+.blog-tape-label.label-red   { background: var(--red);   color: #fff; }
+.blog-tape-label.label-pink  { background: var(--pink);  color: var(--ink); }
+
+/* ── Post header ── */
+.blog-header { margin-bottom: 40px; }
+
+.blog-eyebrow {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--gold);
+  font-family: "Courier New", monospace;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.blog-title {
+  margin: 0 0 16px;
+  font-size: clamp(2rem, 6vw, 3.4rem);
+  line-height: 0.92;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 3px 3px 0 #d22c37, 6px 6px 0 #081844;
+}
+
+.blog-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-family: "Courier New", monospace;
+  font-size: 0.78rem;
+  color: rgba(255,247,209,0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.blog-meta-dot { opacity: 0.4; }
+
+/* ── Divider ── */
+.blog-divider {
+  height: 3px;
+  margin: 32px 0;
+  background: linear-gradient(90deg, var(--gold), transparent);
+  border: none;
+}
+
+/* ── Prose body ── */
+.blog-body {
+  font-size: clamp(1rem, 2.2vw, 1.15rem);
+  color: rgba(255,247,209,0.9);
+}
+
+.blog-body p {
+  margin: 0 0 1.4em;
+  max-width: var(--prose-max);
+}
+
+.blog-body h2 {
+  margin: 2.2em 0 0.6em;
+  font-size: clamp(1.3rem, 3.5vw, 1.75rem);
+  line-height: 1;
+  text-transform: uppercase;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.blog-body h2::before {
+  content: "// ";
+  color: var(--gold);
+  font-family: "Courier New", monospace;
+  font-size: 0.85em;
+}
+
+.blog-body h3 {
+  margin: 1.6em 0 0.5em;
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  color: var(--cyan);
+  letter-spacing: 0.04em;
+}
+
+.blog-body ul,
+.blog-body ol {
+  margin: 0 0 1.4em;
+  padding-left: 22px;
+  max-width: var(--prose-max);
+}
+
+.blog-body li { margin-bottom: 0.45em; }
+
+.blog-body strong { color: #fff; }
+
+.blog-body em {
+  color: var(--gold);
+  font-style: normal;
+  font-family: "Courier New", monospace;
+  font-size: 0.92em;
+}
+
+/* ── Blockquote / callout ── */
+.blog-body blockquote {
+  margin: 1.6em 0;
+  padding: 14px 18px;
+  border-left: 3px solid var(--gold);
+  background: rgba(242,212,71,0.07);
+  color: rgba(255,247,209,0.85);
+  font-style: italic;
+}
+
+.blog-body blockquote p { margin: 0; }
+
+/* ── Inline code ── */
+.blog-body code {
+  padding: 2px 6px;
+  background: rgba(101,232,255,0.12);
+  border: 1px solid rgba(101,232,255,0.22);
+  color: var(--cyan);
+  font-family: "Courier New", monospace;
+  font-size: 0.88em;
+  border-radius: 2px;
+}
+
+/* ── Code blocks ── */
+.blog-body pre {
+  margin: 1.6em 0;
+  padding: 20px 22px;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(101,232,255,0.18);
+  border-left: 3px solid var(--cyan);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.blog-body pre code {
+  padding: 0;
+  background: none;
+  border: none;
+  color: #c8ffd4;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  border-radius: 0;
+}
+
+/* SQL gets gold accent */
+.blog-body pre.sql-block {
+  border-left-color: var(--gold);
+}
+
+.blog-body pre.sql-block code { color: #fff7d1; }
+
+/* ── Takeaway box ── */
+.blog-takeaway {
+  margin-top: 48px;
+  padding: 20px 22px;
+  border: 2px solid var(--gold);
+  background: linear-gradient(90deg, rgba(17,84,164,0.55), rgba(9,17,38,0.7));
+}
+
+.blog-takeaway-label {
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 3px 8px;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.blog-takeaway p {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #fff7d1;
+}
+
+/* ── Footer nav ── */
+.blog-footer {
+  margin-top: 64px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.blog-footer-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 2px solid rgba(255,255,255,0.22);
+  background: rgba(0,0,0,0.38);
+  color: rgba(255,247,209,0.75);
+  font-family: "Courier New", monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.blog-footer-back:hover {
+  background: rgba(118,255,157,0.12);
+  color: var(--green);
+}
+
+.blog-footer-series {
+  font-family: "Courier New", monospace;
+  font-size: 0.72rem;
+  color: rgba(255,247,209,0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Post series nav (other posts) ── */
+.blog-series {
+  margin-top: 56px;
+  padding: 20px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(0,0,0,0.28);
+}
+
+.blog-series-title {
+  margin: 0 0 16px;
+  font-family: "Courier New", monospace;
+  font-size: 0.72rem;
+  color: rgba(255,247,209,0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.blog-series-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.blog-series-list a {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  color: rgba(255,247,209,0.7);
+  text-decoration: none;
+  font-size: 0.88rem;
+  transition: color 120ms ease;
+}
+
+.blog-series-list a:hover { color: var(--green); }
+
+.blog-series-list a.current {
+  color: var(--gold);
+  pointer-events: none;
+}
+
+.blog-series-list a::before {
+  content: "◀";
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.2);
+  flex-shrink: 0;
+}
+
+.blog-series-list a.current::before { color: var(--gold); }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .blog-shell { padding: 20px 0 60px; }
+  .blog-body pre { padding: 14px 16px; }
+  .blog-footer { flex-direction: column; align-items: flex-start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
+}
