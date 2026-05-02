@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tooling Lessons From Claude Tool Use — Mwiko</title>
+  <meta name="description" content="The most important part of a tool-using agent is not the model. It is the contract between the model and the tools.">
+  <meta property="og:title" content="Tooling Lessons From Claude Tool Use">
+  <meta property="og:description" content="Claude decides. The application executes. That split made Nearby Vibes capable without making it uncontrollable.">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="blog.css">
+</head>
+<body>
+<article class="blog-shell">
+
+  <a href="../index.html" class="blog-back">◀◀ Back to the store</a>
+
+  <header class="blog-header">
+    <span class="blog-tape-label label-pink">After Hours</span>
+    <span class="blog-eyebrow">Claude API · Tool Use · Agent Design</span>
+    <h1 class="blog-title">Tooling Lessons From Claude Tool Use</h1>
+    <div class="blog-meta">
+      <span>Mwiko Sinyangwe</span>
+      <span class="blog-meta-dot">·</span>
+      <span>Nearby Vibes</span>
+      <span class="blog-meta-dot">·</span>
+      <span>Build notes</span>
+    </div>
+  </header>
+
+  <hr class="blog-divider">
+
+  <div class="blog-body">
+
+    <p>The most important part of a tool-using agent is not the model. It is the contract between the model and the tools.</p>
+
+    <p>In Nearby Vibes, Claude was not generating text. It was deciding when to search nearby venues, retrieve user memory, check availability, rank options, and trigger follow-up workflows. That meant tools had to be designed like a product API, not like random helper functions bolted on after the fact.</p>
+
+    <h2>Tool Tiers</h2>
+
+    <p>I ended up thinking about tools in tiers based on consequence and cost.</p>
+
+    <p><strong>Tier 1 — Safe, read-only, cheap:</strong></p>
+    <ul>
+      <li>Retrieve user memory</li>
+      <li>Search nearby venues</li>
+      <li>Get cuisine or category suggestions</li>
+      <li>Inspect current location context</li>
+    </ul>
+
+    <p><strong>Tier 2 — Safe, but more expensive or specific:</strong></p>
+    <ul>
+      <li>Fetch detailed venue data</li>
+      <li>Check opening hours</li>
+      <li>Get menu details</li>
+      <li>Run ranking over candidates</li>
+    </ul>
+
+    <p><strong>Tier 3 — State-changing or user-facing:</strong></p>
+    <ul>
+      <li>Save a user memory</li>
+      <li>Schedule a proactive nudge</li>
+      <li>Send a Telegram message</li>
+      <li>Create a nightly BI summary</li>
+    </ul>
+
+    <p>The model did not get unlimited access across all tiers. The more consequential the tool, the more validation the application performed before executing it. Tier 3 tools often required an explicit check against user preferences and recent action history before firing.</p>
+
+    <h2>Tool Definitions</h2>
+
+    <p>The best tool definitions were boring and explicit.</p>
+
+<pre><code>const searchNearbyPlaces = {
+  name: "search_nearby_places",
+  description:
+    "Search for nearby restaurants, cafes, bars, and activities " +
+    "that match the user's current request. " +
+    "Use when the user wants to find a specific type of venue or food.",
+  input_schema: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        description:
+          "Short search phrase describing what the user wants. " +
+          "Examples: 'vegetarian ramen', 'quiet wine bar', 'late night burgers'.",
+      },
+      lat:  { type: "number", description: "User's current latitude." },
+      lng:  { type: "number", description: "User's current longitude." },
+      radius_meters: {
+        type: "integer",
+        minimum: 100,
+        maximum: 5000,
+        description: "Search radius in meters. Default to 1500 if not specified.",
+      },
+      open_now: {
+        type: "boolean",
+        description: "If true, only return venues that are currently open.",
+      },
+      max_results: {
+        type: "integer",
+        minimum: 1,
+        maximum: 20,
+        description: "Maximum venues to return. Default to 5.",
+      },
+    },
+    required: ["query", "lat", "lng", "radius_meters"],
+  },
+};</code></pre>
+
+    <p>I learned to avoid clever names. <code>search_nearby_places</code> beats <code>discover_vibes</code> every time. The model chooses tools far more reliably when names describe the action plainly. Description length matters too — a short first sentence plus specific examples worked consistently better than a long generic description.</p>
+
+    <h2>Tool Results</h2>
+
+    <p>Tool result shape matters as much as tool input shape.</p>
+
+    <p><strong>Bad result — model has nothing to reason with:</strong></p>
+
+<pre><code>{
+  "results": ["Little Sesame, 0.4 miles, good reviews"]
+}</code></pre>
+
+    <p><strong>Better result — model can explain tradeoffs:</strong></p>
+
+<pre><code>{
+  "results": [
+    {
+      "id": "venue_123",
+      "name": "Little Sesame",
+      "distance_meters": 640,
+      "walk_minutes": 8,
+      "open_now": true,
+      "price_level": 2,
+      "categories": ["Mediterranean", "Vegetarian-friendly"],
+      "why_it_matches": [
+        "Has strong vegetarian options",
+        "Within walking distance",
+        "Casual dinner atmosphere"
+      ],
+      "warnings": ["Several dishes contain nuts"]
+    }
+  ]
+}</code></pre>
+
+    <p>The second version gives the model something to reason with. It can explain the match, mention the warnings, and compare options without inventing details. The <code>why_it_matches</code> field was particularly useful — it let the application inject ranking logic that the model could then surface in natural language without needing to re-derive it.</p>
+
+    <h2>The Agent Loop</h2>
+
+<pre><code>async function runToolAgent(messages: Message[]) {
+  let currentMessages = messages;
+
+  for (let step = 0; step &lt; 5; step++) {
+    const response = await claude.messages.create({
+      model:    process.env.CLAUDE_MODEL!,
+      max_tokens: 1000,
+      system:   NEARBY_VIBES_SYSTEM_PROMPT,
+      tools:    nearbyTools,
+      messages: currentMessages,
+    });
+
+    const toolCalls = extractToolCalls(response);
+    if (toolCalls.length === 0) return response;
+
+    const toolResults = await Promise.all(
+      toolCalls.map((call) => executeToolSafely(call))
+    );
+
+    currentMessages = appendToolResults(currentMessages, response, toolResults);
+  }
+
+  throw new Error("Agent exceeded max tool steps — returning partial result");
+}</code></pre>
+
+    <p>The <code>step &lt; 5</code> limit is not decorative. Agents need budgets. Without a step budget, a weak query can turn into a slow, expensive loop that burns tokens and leaves the user waiting. The limit forces the system to return something useful rather than searching forever for a perfect answer.</p>
+
+    <h2>Handling Tool Failures</h2>
+
+    <p>Tool results need to communicate failure in a way the model can act on:</p>
+
+<pre><code>// Bad — model has no recovery path
+throw new Error("Location service unavailable");
+
+// Good — model can respond naturally
+return {
+  ok: false,
+  error_code: "LOCATION_MISSING",
+  message: "User location is required before searching nearby places.",
+  recoverable: true,
+  suggested_action: "Ask the user to share their location.",
+};</code></pre>
+
+    <p>With a structured failure response, the model recovers naturally: <em>"I can find options for you, but I need your location first."</em> With an unhandled exception, the agent either crashes or produces a confused response.</p>
+
+    <h2>Logging Tool Calls as Product Events</h2>
+
+    <p>Tool calls are product events. They should be logged with the same care as any other user action:</p>
+
+<pre><code>logger.info({
+  userId,
+  sessionId,
+  toolName:    call.name,
+  arguments:   redactSensitiveFields(call.input),
+  durationMs,
+  ok:          result.ok,
+  errorCode:   result.ok ? null : result.error_code,
+}, "agent_tool_call");</code></pre>
+
+    <p>Those logs are how you discover that one tool is being chosen for the wrong reasons, that a tool is returning data the model cannot act on, or that latency spikes are coming from a specific external call. The agent loop is observable in the same way any other system is.</p>
+
+    <h2>The Four Lessons</h2>
+
+    <p><strong>Make tools narrower than you want at first.</strong> A broad <code>handle_user_request</code> tool is easy to build and impossible to control. A narrow <code>search_nearby_places</code> creates a clear contract that both the model and the application can reason about.</p>
+
+    <p><strong>Validate tool input server-side.</strong> The model proposes arguments. The application owns execution. If a radius must be under 5 km, enforce it in code. If a tool requires user consent, check consent outside the model.</p>
+
+    <p><strong>Return structured failures.</strong> The model should be able to recover from any tool failure. If your tool can only throw exceptions, the agent cannot recover gracefully.</p>
+
+    <p><strong>Log tool calls as product events.</strong> Observability is not optional. The only way to understand and improve an agent in production is to have a clear record of what it decided, what tools it called, and what came back.</p>
+
+  </div>
+
+  <div class="blog-takeaway">
+    <span class="blog-takeaway-label">Takeaway</span>
+    <p>Tool use works best when the model is treated as a <strong>planner</strong> and the application is treated as the <strong>executor</strong>. Claude can decide that it needs nearby restaurants, user memory, or opening hours. But the application defines what those tools mean, validates their inputs, enforces budgets, and decides which actions are allowed. That split made Nearby Vibes feel capable without making it uncontrollable.</p>
+  </div>
+
+  <nav class="blog-series" aria-label="After Hours series">
+    <p class="blog-series-title">After Hours — All Posts</p>
+    <ul class="blog-series-list">
+      <li><a href="pgvector.html">How I Built Agent Memory with pgvector</a></li>
+      <li><a href="prompt-caching.html">What Prompt Caching Changed in Production Cost</a></li>
+      <li><a href="langchain.html">LangChain: What I Used, What I Did Not, and Why</a></li>
+      <li><a href="rag.html">RAG Lessons From Building Retrieval Into Products</a></li>
+      <li><a href="tool-use.html" class="current">Tooling Lessons From Claude Tool Use</a></li>
+      <li><a href="proactive-agents.html">Proactive Autonomous Agents in Nearby Vibes</a></li>
+    </ul>
+  </nav>
+
+  <footer class="blog-footer">
+    <a href="../index.html" class="blog-footer-back">◀◀ Back to the store</a>
+    <span class="blog-footer-series">Mwiko Video Club — After Hours</span>
+  </footer>
+
+</article>
+</body>
+</html>
