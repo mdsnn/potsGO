@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LangChain: What I Used, What I Didn't, and Why — Mwiko</title>
+  <meta name="description" content="A practical take on LangChain after building a production AI agent without it — what it gets right, where it gets heavy, and the rule I use now.">
+  <meta property="og:title" content="LangChain: What I Used, What I Didn't, and Why">
+  <meta property="og:description" content="My rule: use frameworks for commodity complexity. Own the code where product behavior lives.">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="blog.css">
+</head>
+<body>
+<article class="blog-shell">
+
+  <a href="../index.html" class="blog-back">◀◀ Back to the store</a>
+
+  <header class="blog-header">
+    <span class="blog-tape-label label-blue">After Hours</span>
+    <span class="blog-eyebrow">LangChain · Agent Frameworks · AI Tooling</span>
+    <h1 class="blog-title">LangChain: What I Used, What I Did Not, and Why</h1>
+    <div class="blog-meta">
+      <span>Mwiko Sinyangwe</span>
+      <span class="blog-meta-dot">·</span>
+      <span>Nearby Vibes</span>
+      <span class="blog-meta-dot">·</span>
+      <span>Build notes</span>
+    </div>
+  </header>
+
+  <hr class="blog-divider">
+
+  <div class="blog-body">
+
+    <p>LangChain is one of those tools that people tend to discuss as a belief system. You are either supposed to love it because it gives you abstractions for LLM apps, or reject it because it hides too much.</p>
+
+    <p>My take is more boring: LangChain is useful when its abstractions match the shape of your problem. It gets in the way when you are still discovering that shape.</p>
+
+    <p>For Nearby Vibes, I evaluated LangChain early, borrowed some of its vocabulary, and built the production agent without it. That is not a verdict against LangChain. It is a verdict about where the agent loop sat in the product.</p>
+
+    <h2>What LangChain Gets Right</h2>
+
+    <p>LangChain is genuinely good at getting a prototype moving quickly. If you need to wire together a model, prompt templates, tools, retrieval, memory, and output parsing, it gives you a vocabulary and a component set. That matters when you are still learning what an LLM application even needs.</p>
+
+    <p>The value is not only the code. It is the mental structure. Concepts like tools, retrievers, chains, agents, and memory are useful labels regardless of whether you end up using the library. LangChain helped push the whole community toward shared vocabulary for AI system design, and that vocabulary is worth having even if you go your own way on the implementation.</p>
+
+    <p>I would reach for LangChain faster on a project where the integration surface is broad and standard: chat over documents, common vector stores, interchangeable model providers, standard loaders and retrievers. The abstractions fit that shape well.</p>
+
+    <h2>Where It Started to Feel Heavy</h2>
+
+    <p>The more product-specific Nearby Vibes became, the more I cared about the exact behavior between steps. I wanted direct control over how tools were selected, how memory was retrieved, how many tokens each section consumed, how errors surfaced, how the agent recovered from bad tool output, and how telemetry mapped to product events.</p>
+
+    <p>A general-purpose orchestration framework can become another layer to debug when product behavior is the thing you are actually trying to tune. The issue was not that LangChain <em>could not</em> do these things. The issue was that I was spending more time understanding the abstraction than understanding the product behavior underneath it.</p>
+
+    <h2>The Agent Loop I Actually Wanted</h2>
+
+    <p>For Nearby Vibes, the core loop was simple enough to own directly:</p>
+
+<pre><code>async function runNearbyAgent(input: AgentInput): Promise&lt;AgentResult&gt; {
+  const memory = await retrieveRelevantMemory(input.userId, input.message);
+
+  const response = await claude.messages.create({
+    model:    process.env.CLAUDE_MODEL!,
+    max_tokens: 1000,
+    system:   buildSystemPrompt({ memory }),
+    tools:    nearbyTools,
+    messages: input.messages,
+  });
+
+  if (response.stop_reason === "tool_use") {
+    const toolResults = await runRequestedTools(response.content);
+    return continueWithToolResults(input, response, toolResults);
+  }
+
+  return formatAgentResult(response);
+}</code></pre>
+
+    <p>That is not a lot of code. More importantly, every line maps directly to product behavior. When something went wrong, I could answer exactly where it broke: memory retrieval, tool selection, tool execution, or final formatting. That debugging path mattered more to me than having a more elegant framework graph.</p>
+
+    <h2>The Abstractions I Did Borrow</h2>
+
+    <p>Even without using LangChain directly, I ended up thinking in its vocabulary:</p>
+
+    <ul>
+      <li><strong>Retrievers</strong> — the memory and venue retrieval layer in Nearby Vibes is essentially a retriever, just implemented directly in Postgres and TypeScript</li>
+      <li><strong>Tools</strong> — the concept of strongly typed tool contracts with defined inputs and structured outputs came from the broader ecosystem LangChain helped popularize</li>
+      <li><strong>Structured outputs</strong> — forcing model outputs into typed shapes, not free-form text</li>
+      <li><strong>Evaluation traces</strong> — logging agent steps as structured events so you can replay and debug what the agent decided</li>
+    </ul>
+
+    <p>The ideas are valuable. The question is always whether the implementation layer adds more than it costs.</p>
+
+    <h2>The Rule I Use Now</h2>
+
+    <blockquote><p>Use frameworks for commodity complexity. Own the code where product behavior lives.</p></blockquote>
+
+    <p>For Nearby Vibes, tool orchestration, memory, ranking, and prompt caching were product behavior. I wanted those pieces sitting directly in the application code where I could see them, test them, and change them without navigating a framework's abstraction layer.</p>
+
+    <p>Integrating with a model provider, loading documents, chunking text, connecting to a vector store — these are commodity complexity. LangChain can handle that well, and using it there would have been reasonable.</p>
+
+    <p>The agent reasoning loop, the tool contract, the memory retrieval strategy — these were product decisions. I kept those close.</p>
+
+    <h2>When I Would Choose LangChain</h2>
+
+    <p>I would reach for LangChain when:</p>
+
+    <ul>
+      <li>The project needs to work across multiple model providers and I want to swap them easily</li>
+      <li>I am building retrieval over documents and the retrieval pipeline is mostly standard</li>
+      <li>I need to prototype quickly and proving the concept matters more than owning every line</li>
+      <li>The team is already familiar with it and the onboarding cost is already paid</li>
+    </ul>
+
+    <p>I would build without it when:</p>
+
+    <ul>
+      <li>The agent loop is the product — the way the agent reasons and acts is the differentiator</li>
+      <li>I need precise control over prompt structure, caching, and token budgets</li>
+      <li>The debugging surface needs to be as thin as possible</li>
+      <li>The team needs to understand every step without consulting external documentation</li>
+    </ul>
+
+  </div>
+
+  <div class="blog-takeaway">
+    <span class="blog-takeaway-label">Takeaway</span>
+    <p>The best LangChain decision is not yes or no. It is deciding which parts of your AI system are generic enough to outsource to a framework and which parts are specific enough that you should <strong>own them</strong>. For Nearby Vibes, the agent loop pushed firmly into the second category.</p>
+  </div>
+
+  <nav class="blog-series" aria-label="After Hours series">
+    <p class="blog-series-title">After Hours — All Posts</p>
+    <ul class="blog-series-list">
+      <li><a href="pgvector.html">How I Built Agent Memory with pgvector</a></li>
+      <li><a href="prompt-caching.html">What Prompt Caching Changed in Production Cost</a></li>
+      <li><a href="langchain.html" class="current">LangChain: What I Used, What I Did Not, and Why</a></li>
+      <li><a href="rag.html">RAG Lessons From Building Retrieval Into Products</a></li>
+      <li><a href="tool-use.html">Tooling Lessons From Claude Tool Use</a></li>
+      <li><a href="proactive-agents.html">Proactive Autonomous Agents in Nearby Vibes</a></li>
+    </ul>
+  </nav>
+
+  <footer class="blog-footer">
+    <a href="../index.html" class="blog-footer-back">◀◀ Back to the store</a>
+    <span class="blog-footer-series">Mwiko Video Club — After Hours</span>
+  </footer>
+
+</article>
+</body>
+</html>
