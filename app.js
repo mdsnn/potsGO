@@ -168,24 +168,58 @@ const tapes = [
     color: "#ff5caa",
     art: "linear-gradient(135deg, #ff5caa, #442264 48%, #08090d)",
     tilt: "2deg",
-    runtime: "02:12",
+    runtime: "06:00",
     staffTitle: "Build notes from the night shift.",
-    staffBody: "AI agent design, SaaS lessons, React patterns, Postgres tricks, and the road toward Go services.",
+    staffBody: "Six posts on agent memory, prompt caching, RAG, LangChain, tool use, and proactive agents — all from building Nearby Vibes.",
     scenes: [
       {
         heading: "After Hours",
-        body: "Use this tape for build notes: AI agent design, SaaS lessons, React patterns, API design, Postgres tricks, and the road from FastAPI-heavy systems toward Go services.",
-        duration: 4400
+        eyebrow: "Build notes · Nearby Vibes",
+        body: "Six posts from building a production AI agent. Not tutorials — real decisions, real failures, and what actually shipped.",
+        badges: ["pgvector", "Prompt caching", "RAG", "LangChain", "Tool use", "Proactive agents"],
+        duration: 5000
       },
       {
-        heading: "Staff Picks",
-        list: [
-          "How I built agent memory with pgvector",
-          "What prompt caching changed in production cost",
-          "Migrating legacy business systems without breaking daily operations",
-          "React + Go notes as I move deeper into Go backends"
-        ],
-        duration: 5200
+        heading: "Agent Memory with pgvector",
+        eyebrow: "Post 1 of 6",
+        body: "How I built persistent semantic user memory in Nearby Vibes using pgvector — without a separate vector database. The hard part was not the database. It was deciding what deserved to become memory.",
+        links: [{ label: "Read the post →", href: "blog/pgvector.html" }],
+        duration: 6000
+      },
+      {
+        heading: "Prompt Caching in Production",
+        eyebrow: "Post 2 of 6",
+        body: "Prompt caching changed the economics of running a tool-using agent. The win came from treating tool definitions and system instructions as product infrastructure — stable, deliberate, and cacheable.",
+        links: [{ label: "Read the post →", href: "blog/prompt-caching.html" }],
+        duration: 6000
+      },
+      {
+        heading: "LangChain: What I Used and Why",
+        eyebrow: "Post 3 of 6",
+        body: "I evaluated LangChain, borrowed its vocabulary, and built the Nearby Vibes agent without it. Not a verdict against the framework — a verdict about where the agent loop sat in the product.",
+        links: [{ label: "Read the post →", href: "blog/langchain.html" }],
+        duration: 6000
+      },
+      {
+        heading: "RAG Lessons From Real Products",
+        eyebrow: "Post 4 of 6",
+        body: "RAG is not one feature. It is the retrieval layer of your product. Chunking strategy, hybrid search, reranking, and knowing when retrieval makes things worse — all from building Nearby Vibes.",
+        links: [{ label: "Read the post →", href: "blog/rag.html" }],
+        duration: 6000
+      },
+      {
+        heading: "Tooling: Claude Tool Use",
+        eyebrow: "Post 5 of 6",
+        body: "The most important part of a tool-using agent is the contract between the model and the tools. Tool tiers, structured failures, step budgets, and logging tool calls as product events.",
+        links: [{ label: "Read the post →", href: "blog/tool-use.html" }],
+        duration: 6000
+      },
+      {
+        heading: "Proactive Autonomous Agents",
+        eyebrow: "Post 6 of 6",
+        body: "Scheduled jobs, Telegram nudges, nightly BI — the parts of Nearby Vibes that acted before the user asked. Autonomy is a ladder. The most powerful thing an agent can do is sometimes decide to do nothing.",
+        links: [{ label: "Read the post →", href: "blog/proactive-agents.html" }],
+        duration: 6000
       }
     ]
   },
