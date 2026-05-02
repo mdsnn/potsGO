@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>What Prompt Caching Changed in Production Cost — Mwiko</title>
+  <meta name="description" content="How Anthropic's prompt caching changed the economics of running a tool-using agent in production — and what it took to implement it correctly.">
+  <meta property="og:title" content="What Prompt Caching Changed in Production Cost">
+  <meta property="og:description" content="Prompt caching is not a magic discount button. It rewards stable prompt architecture.">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="blog.css">
+</head>
+<body>
+<article class="blog-shell">
+
+  <a href="../index.html" class="blog-back">◀◀ Back to the store</a>
+
+  <header class="blog-header">
+    <span class="blog-tape-label label-gold">After Hours</span>
+    <span class="blog-eyebrow">Claude API · Prompt Caching · Production Cost</span>
+    <h1 class="blog-title">What Prompt Caching Changed in Production Cost</h1>
+    <div class="blog-meta">
+      <span>Mwiko Sinyangwe</span>
+      <span class="blog-meta-dot">·</span>
+      <span>Nearby Vibes</span>
+      <span class="blog-meta-dot">·</span>
+      <span>Build notes</span>
+    </div>
+  </header>
+
+  <hr class="blog-divider">
+
+  <div class="blog-body">
+
+    <p>Prompt caching did not change the product architecture. It changed the economics of running it.</p>
+
+    <p>In Nearby Vibes, the expensive part of an agent call was not always the user's latest message. It was the repeated context around the message: the system prompt, tool definitions, behavioral rules, examples, and working context that barely changed between calls. Before caching, every request paid for that entire static prefix again from scratch.</p>
+
+    <p>After caching, the cost profile shifted from <em>"pay for the whole prompt every time"</em> to <em>"pay to write the stable prefix once, then pay a much lower read price while it stays reusable."</em></p>
+
+    <h2>What We Were Repeating</h2>
+
+    <p>Nearby Vibes used Claude as a tool-using agent. Each request included a lot of stable material alongside the user's actual message:</p>
+
+    <ul>
+      <li>The core system prompt and response style rules</li>
+      <li>Tool definitions and JSON schemas</li>
+      <li>Tool usage policy and behavioral constraints</li>
+      <li>Examples of good tool calls</li>
+      <li>Product-specific safety and fallback behavior</li>
+    </ul>
+
+    <p>The actual user message was often tiny — <em>"Anything good nearby that's still open?"</em> — but the model also needed the full operating manual: how to search venues, how to rank results, how to ask follow-up questions, when to pull user memory, and how to format the response.</p>
+
+    <p>That operating manual was the obvious caching candidate.</p>
+
+    <h2>What We Cached</h2>
+
+    <p>The most useful cached prefix was: tool definitions, system instructions, stable examples, and any long-lived context that did not change per user request. I avoided caching highly dynamic state unless I could guarantee it would be reused across the next several calls.</p>
+
+    <p>Anthropic's prompt cache is prefix-based. The API considers content in this order:</p>
+
+<pre><code>tools → system → messages</code></pre>
+
+    <p>That ordering matters. If your tools change between requests, everything below them in the cache is also invalidated. Tool definitions need to be stable in production.</p>
+
+    <h2>Implementation</h2>
+
+    <p>The implementation is straightforward — you mark the end of the stable prefix with <code>cache_control</code>:</p>
+
+<pre><code>import Anthropic from "@anthropic-ai/sdk";
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
+
+// Mark the last tool in the stable set as the cache boundary
+const tools = [
+  {
+    name: "search_nearby_places",
+    description: "Search for nearby restaurants, cafes, bars, and activities.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query:          { type: "string" },
+        lat:            { type: "number" },
+        lng:            { type: "number" },
+        open_now:       { type: "boolean" },
+        radius_meters:  { type: "integer" },
+      },
+      required: ["query", "lat", "lng"],
+    },
+  },
+  {
+    name: "get_user_memory",
+    description: "Retrieve relevant user preferences and past interactions.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+      },
+      required: ["query"],
+    },
+    // Cache boundary: everything above this is stable
+    cache_control: { type: "ephemeral" as const },
+  },
+];
+
+const response = await anthropic.messages.create({
+  model: process.env.CLAUDE_MODEL!,
+  max_tokens: 800,
+  tools,
+  system: [
+    {
+      type: "text",
+      text: NEARBY_VIBES_SYSTEM_PROMPT,
+      cache_control: { type: "ephemeral" },
+    },
+  ],
+  messages: [
+    {
+      role: "user",
+      content: "Find me a casual dinner spot nearby that is open now.",
+    },
+  ],
+});
+
+console.log(response.usage);</code></pre>
+
+    <p>The critical thing to log was the <code>usage</code> field, especially the cache-specific tokens:</p>
+
+<pre><code>type CacheUsage = {
+  input_tokens: number;
+  cache_creation_input_tokens: number;
+  cache_read_input_tokens: number;
+  output_tokens: number;
+};</code></pre>
+
+    <p>Those fields let you verify that caching is actually working, rather than assuming it is.</p>
+
+    <h2>Making Cache Hits Visible</h2>
+
+    <p>Once you add logging, you can see immediately when a deploy accidentally breaks cache reuse:</p>
+
+<pre><code>function logClaudeUsage(route: string, usage: CacheUsage) {
+  logger.info({
+    route,
+    inputTokens:         usage.input_tokens,
+    cacheCreationTokens: usage.cache_creation_input_tokens,
+    cacheReadTokens:     usage.cache_read_input_tokens,
+    outputTokens:        usage.output_tokens,
+    cacheHitRate: usage.cache_read_input_tokens > 0
+      ? (usage.cache_read_input_tokens /
+         (usage.cache_read_input_tokens + usage.cache_creation_input_tokens))
+      : 0,
+  }, "claude_usage");
+}</code></pre>
+
+    <p>A sudden drop in <code>cacheReadTokens</code> after a deployment usually means a tool definition changed, a timestamp got injected into the cached prefix, or dynamic content moved into the wrong section of the prompt.</p>
+
+    <h2>The Gotchas</h2>
+
+    <p><strong>Minimum cache length.</strong> If the cacheable prefix is too short, it will not be cached even if you mark it with <code>cache_control</code>. The stable prefix needs to be substantial to justify the cache write cost.</p>
+
+    <p><strong>Exact matching.</strong> The cached prefix has to be byte-identical on every request. If you inject timestamps, request IDs, randomized examples, or any user-specific text into the cached section, each request creates a new cache entry instead of reading the existing one.</p>
+
+    <p><strong>Tool churn during development.</strong> During active development I was constantly tweaking tool descriptions and schemas. Every tweak invalidated the prefix. Fine while building, but the stable agent contract needs to actually be stable in production before caching delivers real value.</p>
+
+    <p><strong>Concurrent request bursts.</strong> A cache entry is not available until the first response has started writing it. If you fire a burst of identical requests simultaneously, they may all miss the cache on the first wave.</p>
+
+    <h2>How the Mental Model Changed</h2>
+
+    <p>Before caching, the optimization question was: <em>"How small can I make every prompt?"</em></p>
+
+    <p>After caching, the question became: <em>"What parts of this prompt are stable enough to become infrastructure?"</em></p>
+
+    <p>That shift made the agent design cleaner in ways that went beyond cost. Tool definitions became more deliberate. The system prompt became less of a dumping ground. Dynamic context — user location, current session history, real-time context — moved later in the request where it belonged.</p>
+
+    <p>The architecture that works well with prompt caching is also just a better-structured agent. The two things reinforce each other.</p>
+
+  </div>
+
+  <div class="blog-takeaway">
+    <span class="blog-takeaway-label">Takeaway</span>
+    <p>Prompt caching is not a magic discount button. It rewards <strong>stable prompt architecture</strong>. For Nearby Vibes, the win came from caching the parts of the agent that behaved like product infrastructure — tools, policies, examples, and stable instructions. The parts that changed per user stayed uncached. That split made the product cheaper to run and easier to reason about.</p>
+  </div>
+
+  <nav class="blog-series" aria-label="After Hours series">
+    <p class="blog-series-title">After Hours — All Posts</p>
+    <ul class="blog-series-list">
+      <li><a href="pgvector.html">How I Built Agent Memory with pgvector</a></li>
+      <li><a href="prompt-caching.html" class="current">What Prompt Caching Changed in Production Cost</a></li>
+      <li><a href="langchain.html">LangChain: What I Used, What I Did Not, and Why</a></li>
+      <li><a href="rag.html">RAG Lessons From Building Retrieval Into Products</a></li>
+      <li><a href="tool-use.html">Tooling Lessons From Claude Tool Use</a></li>
+      <li><a href="proactive-agents.html">Proactive Autonomous Agents in Nearby Vibes</a></li>
+    </ul>
+  </nav>
+
+  <footer class="blog-footer">
+    <a href="../index.html" class="blog-footer-back">◀◀ Back to the store</a>
+    <span class="blog-footer-series">Mwiko Video Club — After Hours</span>
+  </footer>
+
+</article>
+</body>
+</html>
