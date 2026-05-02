@@ -559,28 +559,48 @@ h1 {
 .project-card p { font-size: 0.88rem; }
 
 /* ─────────────────────────────────────────
-   SCREEN IMAGE
+   SCREEN IMAGE — full-bleed background
 ───────────────────────────────────────── */
 .screen-image {
-  width: min(100%, 610px);
+  position: absolute;
+  inset: 0;
   margin: 0;
-  border: 2px solid rgba(215,255,228,0.5);
-  background: rgba(0,0,0,0.45);
+  z-index: 0;        /* sits behind .screen-content (z-index: 2) */
   overflow: hidden;
+  pointer-events: none;
 }
 
 .screen-image img {
   display: block;
   width: 100%;
-  max-height: 230px;
+  height: 100%;
   object-fit: cover;
-  object-position: left top;
-  filter: saturate(0.72) contrast(1.18) sepia(0.14);
+  object-position: center top;
+  filter: saturate(0.78) contrast(1.14) sepia(0.12) brightness(0.62);
 }
 
-/* Larger image in fullscreen */
-.fs-screen .screen-image img {
-  max-height: 360px;
+/* ── When a scene has an image, push text to the bottom
+      and add a dark gradient so it stays readable ── */
+.screen-content.has-image {
+  justify-content: flex-end;
+  padding-bottom: clamp(16px, 3.5vw, 28px);
+  background: linear-gradient(
+    to bottom,
+    rgba(8, 14, 10, 0.0)  0%,
+    rgba(8, 14, 10, 0.55) 40%,
+    rgba(8, 14, 10, 0.88) 68%,
+    rgba(8, 14, 10, 0.97) 100%
+  );
+  overflow-y: visible; /* content is short on image scenes */
+}
+
+/* Tighten gaps on image scenes so text block is compact */
+.screen-content.has-image { gap: 8px; }
+
+/* Scene counter stays bottom-left */
+.screen-content.has-image .scene-counter {
+  align-self: flex-start;
+  margin-top: 4px;
 }
 
 /* ─────────────────────────────────────────

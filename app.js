@@ -592,6 +592,7 @@ function updateStaffPick(tape) {
 ───────────────────────────────────────── */
 function renderScene(state = mode) {
   if (!currentTape) {
+    screenContent.classList.remove("has-image");
     screenContent.innerHTML = `
       <p class="standby">NO TAPE</p>
       <p class="standby-small">Drag a tape to the VCR slot, or click one to rent it.</p>`;
@@ -605,6 +606,8 @@ function renderScene(state = mode) {
   }
 
   const scene    = currentTape.scenes[currentScene] || currentTape.scenes[0];
+  const hasImage = !!scene.image;
+
   const eyebrow  = scene.eyebrow  ? `<p class="scene-eyebrow">${escHtml(scene.eyebrow)}</p>` : "";
   const body     = scene.body     ? `<p>${escHtml(scene.body)}</p>` : "";
   const list     = scene.list     ? `<ul>${scene.list.map((item) => `<li>${escHtml(item)}</li>`).join("")}</ul>` : "";
@@ -615,13 +618,20 @@ function renderScene(state = mode) {
         <small>${escHtml(card.meta)}</small>
         <p>${escHtml(card.body)}</p>
       </article>`).join("")}</div>` : "";
-  const image    = scene.image    ? `<figure class="screen-image"><img src="${escAttr(scene.image)}" alt="${escAttr(scene.imageAlt || "")}"></figure>` : "";
+  // Image renders first so it sits at z-index 0 behind the text (z-index 2)
+  const image    = hasImage
+    ? `<figure class="screen-image"><img src="${escAttr(scene.image)}" alt="${escAttr(scene.imageAlt || "")}"></figure>`
+    : "";
   const linksHtml = scene.links   ? buildLinks(scene.links) : "";
 
   const label = state === "loaded" ? "Press play on the VCR." : state.toUpperCase();
   updateTransportDisplay(state);
 
+  // Toggle has-image class so CSS can switch layout mode
+  screenContent.classList.toggle("has-image", hasImage);
+
   screenContent.innerHTML = `
+    ${image}
     <p class="kicker">${escHtml(label)}</p>
     ${eyebrow}
     <h2>${escHtml(scene.heading)}</h2>
@@ -630,7 +640,6 @@ function renderScene(state = mode) {
     ${badges}
     ${cards}
     ${linksHtml}
-    ${image}
     <p class="scene-counter">${currentScene + 1} / ${currentTape.scenes.length}</p>`;
 
   syncFullscreen();
@@ -804,6 +813,7 @@ function startPlayback() {
       <h2>${escHtml(currentTape.title)}</h2>
       <p>Rewind to watch it again, fast-forward to jump around, or eject and rent another tape.</p>`;
 
+    screenContent.classList.remove("has-image");
     screenContent.innerHTML = endHtml;
 
     vcrDisplay.textContent = "END";
@@ -918,7 +928,8 @@ function syncFullscreen() {
     if (screen.classList.contains(cls)) fsScreen.classList.add(cls);
   });
 
-  // Mirror content
+  // Mirror content + has-image class
+  fsScreenContent.classList.toggle("has-image", screenContent.classList.contains("has-image"));
   fsScreenContent.innerHTML = screenContent.innerHTML;
 
   // Mirror VCR display
