@@ -1140,6 +1140,286 @@ h1 {
 }
 
 /* ─────────────────────────────────────────
+   FAST PATH NAV
+───────────────────────────────────────── */
+.fast-path {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(0,0,0,0.28);
+}
+
+.fast-path-label {
+  color: rgba(255,247,209,0.38);
+  font-family: "Courier New", monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+.fast-path-btn {
+  padding: 5px 12px;
+  border: 1px solid rgba(255,247,209,0.22);
+  background: rgba(0,0,0,0.32);
+  color: rgba(255,247,209,0.7);
+  font-family: "Courier New", monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.fast-path-btn:hover {
+  background: rgba(118,255,157,0.14);
+  color: var(--green);
+  border-color: rgba(118,255,157,0.4);
+}
+
+.fast-path-btn.fp-active {
+  background: rgba(118,255,157,0.18);
+  color: var(--green);
+  border-color: rgba(118,255,157,0.55);
+}
+
+/* ─────────────────────────────────────────
+   SCENE NAVIGATION DOTS
+───────────────────────────────────────── */
+.scene-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 0 4px;
+  min-height: 28px;
+  flex-wrap: wrap;
+}
+
+.scene-dots:empty { display: none; }
+
+.scene-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(215,255,228,0.45);
+  background: rgba(215,255,228,0.12);
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+  flex-shrink: 0;
+}
+
+.scene-dot:hover {
+  background: rgba(215,255,228,0.35);
+  border-color: rgba(215,255,228,0.7);
+  transform: scale(1.3);
+}
+
+.scene-dot.dot-active {
+  background: var(--green);
+  border-color: var(--green);
+  transform: scale(1.2);
+  box-shadow: 0 0 6px rgba(118,255,157,0.6);
+}
+
+/* Dots inside the fullscreen bezel sit below the screen */
+.fs-scene-dots {
+  padding: 6px 0 2px;
+}
+
+/* ─────────────────────────────────────────
+   CONTACT FORM OVERLAY
+───────────────────────────────────────── */
+.contact-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  background: rgba(7,8,12,0.96);
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.contact-overlay.open {
+  display: flex;
+}
+
+.contact-overlay.contact-visible {
+  opacity: 1;
+}
+
+.contact-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: min(520px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 32px;
+  border: 2px solid var(--gold);
+  background:
+    linear-gradient(180deg, rgba(17,84,164,0.25), rgba(8,9,13,0.95)),
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.03) 0 8px, transparent 8px 16px);
+  box-shadow: 0 0 80px rgba(0,0,0,0.9);
+}
+
+/* Header */
+.contact-tape-label {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 3px 8px;
+  background: var(--green);
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.contact-title {
+  margin: 0 0 6px;
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+  text-transform: uppercase;
+  color: #fff;
+  line-height: 0.92;
+  text-shadow: 3px 3px 0 #d22c37;
+}
+
+.contact-sub {
+  margin: 0;
+  color: rgba(255,247,209,0.55);
+  font-family: "Courier New", monospace;
+  font-size: 0.82rem;
+}
+
+/* Fields */
+.contact-form-wrap { display: grid; gap: 16px; }
+
+.contact-field { display: grid; gap: 6px; }
+
+.contact-field-label {
+  color: var(--gold);
+  font-family: "Courier New", monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.contact-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(215,255,228,0.3);
+  background: rgba(0,0,0,0.5);
+  color: #eaffda;
+  font-family: "Courier New", monospace;
+  font-size: 0.92rem;
+  outline: none;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+  resize: none;
+}
+
+.contact-input::placeholder { color: rgba(215,255,228,0.28); }
+
+.contact-input:focus {
+  border-color: rgba(118,255,157,0.6);
+  box-shadow: 0 0 0 2px rgba(118,255,157,0.12);
+}
+
+.contact-textarea { min-height: 120px; }
+
+/* Actions */
+.contact-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.contact-submit {
+  flex: 1;
+  min-height: 46px;
+  padding: 10px 20px;
+  border: 2px solid var(--green);
+  background: rgba(118,255,157,0.12);
+  color: var(--green);
+  font-family: "Courier New", monospace;
+  font-size: 0.88rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.contact-submit:hover { background: rgba(118,255,157,0.22); }
+
+.contact-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.contact-cancel {
+  min-height: 46px;
+  padding: 10px 16px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.35);
+  color: rgba(255,247,209,0.55);
+  font-family: "Courier New", monospace;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.contact-cancel:hover {
+  background: rgba(233,52,52,0.14);
+  color: #ff9898;
+}
+
+/* Status message */
+.contact-status {
+  min-height: 24px;
+  font-family: "Courier New", monospace;
+  font-size: 0.85rem;
+  color: var(--green);
+}
+
+.contact-status.error { color: #ff6b6b; }
+
+/* Alt links */
+.contact-alt {
+  display: grid;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.contact-alt-label {
+  color: rgba(255,247,209,0.38);
+  font-family: "Courier New", monospace;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.contact-alt-link {
+  color: rgba(255,247,209,0.6);
+  font-family: "Courier New", monospace;
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+
+.contact-alt-link:hover { color: var(--green); }
+
+/* ─────────────────────────────────────────
    KEYFRAMES
 ───────────────────────────────────────── */
 @keyframes tracking {
@@ -1188,6 +1468,30 @@ h1 {
   }
 }
 
+@media (max-width: 640px) {
+  /* Fast path wraps cleanly */
+  .fast-path {
+    gap: 5px;
+    padding: 7px 10px;
+  }
+  .fast-path-label { display: none; }
+  .fast-path-btn   { padding: 5px 10px; font-size: 0.7rem; }
+
+  /* Image scenes: larger font for small screens reads better over the bg */
+  .screen-content.has-image h2 {
+    font-size: clamp(1.4rem, 7vw, 2.4rem);
+  }
+  .screen-content.has-image p {
+    font-size: 0.9rem;
+  }
+
+  /* Scene dots slightly larger touch target on mobile */
+  .scene-dot {
+    width: 10px;
+    height: 10px;
+  }
+}
+
 @media (max-width: 560px) {
   .store-shell {
     width: min(100% - 18px, 1180px);
@@ -1205,22 +1509,39 @@ h1 {
     grid-template-columns: 1fr;
     padding: 12px;
   }
+
+  /* Screen minimum height on very small screens */
+  .screen {
+    min-height: clamp(220px, 56vw, 340px);
+  }
+
+  /* VCR controls: 3 cols then eject spans full width */
   .vcr-controls {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .vcr-controls .eject-btn {
     grid-column: 1 / -1;
   }
+
   .card-grid {
     grid-template-columns: 1fr;
   }
+
+  /* Fullscreen bar collapses gracefully */
   .fs-vcr-bar {
     gap: 8px;
     padding: 10px 12px;
   }
-  .fs-display-col { display: none; }
-  .fs-transport button { font-size: 0.78rem; min-height: 38px; }
-  .fs-minimize-btn     { min-height: 38px; padding: 0 12px; }
+  .fs-display-col  { display: none; }
+  .fs-transport button { font-size: 0.72rem; min-height: 38px; min-width: 44px; }
+  .fs-minimize-btn { min-height: 38px; padding: 0 12px; }
+
+  /* Contact overlay full-width on mobile */
+  .contact-shell {
+    padding: 22px 18px;
+  }
+  .contact-actions { flex-direction: column; }
+  .contact-submit  { flex: unset; }
 }
 
 /* Reduce motion */
@@ -1236,5 +1557,7 @@ h1 {
     transform: none !important;
     opacity: 1 !important;
   }
-  .fs-overlay { transition: none; }
+  .fs-overlay,
+  .contact-overlay { transition: none; }
+  .scene-dot { transition: none; }
 }
