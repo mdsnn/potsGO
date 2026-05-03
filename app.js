@@ -46,40 +46,10 @@ const tapes = [
     color: "#1154a4",
     art: "linear-gradient(135deg, #65e8ff, #1154a4 50%, #10131d)",
     tilt: "1.1deg",
-    runtime: "01:23",
+    runtime: "00:50",
     staffTitle: "Production-grade AI SaaS, start to finish.",
-    staffBody: "Nearby Vibes, Agent OS, and a shelf of TypeScript building blocks — all shipped and actively maintained.",
+    staffBody: "Six projects — Pulse, Taskflow, AI Form Builder, CSV Importer, Invoice Generator, and Marketplace. All shipped.",
     scenes: [
-      {
-        heading: "Nearby Vibes",
-        eyebrow: "FastAPI · React PWA · Claude · PostgreSQL",
-        body: "AI-powered F&B operating system and local marketplace for Lusaka, connecting buyers with restaurants, butcheries, bakeries, bars, grocers, and farm shops.",
-        list: [
-          "Zara buyer concierge and Keza seller partner",
-          "Claude tool-use with tiered tools and SSE streaming",
-          "pgvector semantic memory for preferences and order history"
-        ],
-        duration: 4400
-      },
-      {
-        heading: "Agent OS",
-        body: "The interesting part is not just chat. Nearby Vibes has scheduled jobs, proactive nudges, nightly business intelligence, planning flows, Telegram bots, and real-time order management.",
-        badges: ["APScheduler", "WebSockets", "Prompt caching", "Mobile money", "Telegram Bot API"],
-        duration: 5200
-      },
-      {
-        heading: "GitHub Shelf",
-        body: "Pinned repos show a TypeScript-first habit around practical SaaS building blocks.",
-        cards: [
-          { title: "pulse",             meta: "TypeScript", body: "Real-time analytics dashboard foundation." },
-          { title: "taskflow",          meta: "TypeScript", body: "Task and workflow management app." },
-          { title: "ai-form-builder",   meta: "TypeScript", body: "AI-assisted dynamic form generation." },
-          { title: "csv-importer",      meta: "TypeScript", body: "CSV validation, mapping, and import flow." },
-          { title: "invoice-generator", meta: "TypeScript", body: "PDF invoice generation tool." },
-          { title: "marketplace",       meta: "TypeScript", body: "E-commerce marketplace template." }
-        ],
-        duration: 5200
-      },
       {
         heading: "Pulse",
         eyebrow: "Real-time Analytics Dashboard · TypeScript",
