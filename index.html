@@ -4,7 +4,6 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Mwiko</title>
-
     <meta name="description" content="AI SaaS builder & full-stack developer in Lusaka. React, FastAPI, Go, PostgreSQL. Browse the tape shelf.">
     <meta property="og:title"        content="Mwiko Video Club — Portfolio">
     <meta property="og:description"  content="AI SaaS builder & full-stack developer. Browse the tape shelf to see what I build.">
@@ -14,7 +13,6 @@
     <meta name="twitter:title"       content="Mwiko Video Club — Portfolio">
     <meta name="twitter:description" content="AI SaaS builder & full-stack developer. Browse the tape shelf.">
     <meta name="twitter:image"       content="assets/og-preview.png">
-
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
@@ -33,6 +31,16 @@
           <small id="storeStatus">After hours</small>
         </div>
       </section>
+
+      <!-- ── FAST PATH NAV ── -->
+      <nav class="fast-path" aria-label="Quick access — skip the queue">
+        <span class="fast-path-label" aria-hidden="true">Skip the queue →</span>
+        <button class="fast-path-btn" type="button" data-tape="about"    aria-label="Jump to About">About</button>
+        <button class="fast-path-btn" type="button" data-tape="projects" aria-label="Jump to Projects">Projects</button>
+        <button class="fast-path-btn" type="button" data-tape="resume"   aria-label="Jump to Resume">Resume</button>
+        <button class="fast-path-btn" type="button" data-tape="blog"     aria-label="Jump to Blog">Blog</button>
+        <button class="fast-path-btn" type="button" data-tape="contact"  aria-label="Open contact form">Contact</button>
+      </nav>
 
       <section class="store-grid">
 
@@ -56,12 +64,7 @@
             <p id="staffPickBody">React frontends, API-first backends, AI agents, and business systems that survive real daily use.</p>
           </div>
 
-          <div
-            id="tapeShelf"
-            class="tape-shelf"
-            role="list"
-            aria-label="Choose a tape to rent"
-          >
+          <div id="tapeShelf" class="tape-shelf" role="list" aria-label="Choose a tape to rent">
             <p class="shelf-loading" aria-live="polite">Loading tapes…</p>
           </div>
 
@@ -76,7 +79,6 @@
           <div class="tv">
             <div id="trackingLabel" class="tracking-label" aria-live="polite" aria-label="Tracking level">TRACKING 3</div>
 
-            <!-- Expand to fullscreen button -->
             <button
               id="expandBtn"
               class="expand-btn"
@@ -97,17 +99,15 @@
                 <p class="standby-small">Browse the shelf and rent something weird.</p>
               </div>
             </div>
+
+            <!-- Scene navigation dots — rendered below the screen inside the TV bezel -->
+            <div id="sceneDots" class="scene-dots" role="tablist" aria-label="Jump to scene"></div>
           </div>
 
           <div class="vcr" role="group" aria-label="VCR controls">
             <div class="vcr-top">
               <div class="brand" aria-hidden="true">VIDEOMATIC 4000</div>
-              <div
-                id="vcrDisplay"
-                class="vcr-display"
-                aria-live="polite"
-                aria-label="VCR status display"
-              >--:--</div>
+              <div id="vcrDisplay" class="vcr-display" aria-live="polite" aria-label="VCR status display">--:--</div>
             </div>
 
             <div
@@ -121,9 +121,7 @@
 
             <div class="tape-window" aria-hidden="true">
               <div id="leftReel"  class="reel left-reel"></div>
-              <div class="tape-track">
-                <span id="tapeProgress"></span>
-              </div>
+              <div class="tape-track"><span id="tapeProgress"></span></div>
               <div id="rightReel" class="reel right-reel"></div>
             </div>
 
@@ -146,41 +144,22 @@
     </main>
 
     <!-- ── FULLSCREEN OVERLAY ── -->
-    <div
-      id="fsOverlay"
-      class="fs-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Fullscreen player"
-      aria-hidden="true"
-    >
+    <div id="fsOverlay" class="fs-overlay" role="dialog" aria-modal="true" aria-label="Fullscreen player" aria-hidden="true">
       <div class="fs-shell">
-
         <div class="fs-tv">
           <div id="fsTrackingLabel" class="tracking-label fs-tracking-label" aria-live="polite">TRACKING 3</div>
-
-          <!-- Tape title badge shown in fullscreen -->
           <div id="fsTapeLabel" class="fs-tape-label" aria-hidden="true"></div>
-
-          <div
-            id="fsScreen"
-            class="screen paused fs-screen"
-            role="region"
-            aria-label="Fullscreen video screen"
-            aria-live="polite"
-          >
+          <div id="fsScreen" class="screen paused fs-screen" role="region" aria-label="Fullscreen video screen" aria-live="polite">
             <div id="fsScreenContent" class="screen-content"></div>
           </div>
+          <div id="fsSceneDots" class="scene-dots fs-scene-dots" role="tablist" aria-label="Jump to scene"></div>
         </div>
 
-        <!-- Fullscreen VCR controls bar -->
         <div class="fs-vcr-bar">
-
           <div class="fs-display-col">
             <div class="brand" aria-hidden="true">VIDEOMATIC 4000</div>
             <div id="fsVcrDisplay" class="vcr-display" aria-live="polite" aria-label="VCR display">--:--</div>
           </div>
-
           <div class="fs-transport" role="group" aria-label="Fullscreen transport controls">
             <button id="fsPlayBtn"   type="button" aria-label="Play">▶ Play</button>
             <button id="fsPauseBtn"  type="button" aria-label="Pause">⏸ Pause</button>
@@ -188,24 +167,53 @@
             <button id="fsFfBtn"     type="button" aria-label="Fast forward">FF ▶▶</button>
             <button id="fsEjectBtn"  type="button" aria-label="Eject tape" class="eject-btn">⏏ Eject</button>
           </div>
-
           <div class="fs-tracking-col" role="group" aria-label="Fullscreen tracking">
             <button id="fsTrkDownBtn" type="button" aria-label="Decrease tracking">TRK −</button>
             <button id="fsTrkUpBtn"   type="button" aria-label="Increase tracking">TRK +</button>
           </div>
+          <button id="minimizeBtn" class="fs-minimize-btn" type="button" aria-label="Minimize fullscreen" title="Minimize (Esc)">⊡ MINIMIZE</button>
+        </div>
+      </div>
+    </div>
 
-          <button
-            id="minimizeBtn"
-            class="fs-minimize-btn"
-            type="button"
-            aria-label="Minimize fullscreen"
-            title="Minimize (Esc)"
-          >⊡ MINIMIZE</button>
+    <!-- ── CONTACT FORM OVERLAY ── -->
+    <div id="contactOverlay" class="contact-overlay" role="dialog" aria-modal="true" aria-label="Leave a message" aria-hidden="true">
+      <div class="contact-shell">
+        <div class="contact-header">
+          <span class="contact-tape-label">Return Counter</span>
+          <h2 class="contact-title">Leave a Message</h2>
+          <p class="contact-sub">The clerk will get back to you. No late fees for slow replies.</p>
+        </div>
 
-        </div><!-- /fs-vcr-bar -->
+        <div class="contact-form-wrap">
+          <div class="contact-field">
+            <label for="contactName" class="contact-field-label">Your name</label>
+            <input id="contactName" type="text" class="contact-input" placeholder="First Last" autocomplete="name" aria-required="true">
+          </div>
+          <div class="contact-field">
+            <label for="contactEmail" class="contact-field-label">Email</label>
+            <input id="contactEmail" type="email" class="contact-input" placeholder="you@company.com" autocomplete="email" aria-required="true">
+          </div>
+          <div class="contact-field">
+            <label for="contactMsg" class="contact-field-label">Message</label>
+            <textarea id="contactMsg" class="contact-input contact-textarea" placeholder="What are you building? What do you need?" rows="5" aria-required="true"></textarea>
+          </div>
 
-      </div><!-- /fs-shell -->
-    </div><!-- /fs-overlay -->
+          <div class="contact-actions">
+            <button id="contactSubmitBtn" type="button" class="contact-submit">⏩ Send Message</button>
+            <button id="contactCancelBtn" type="button" class="contact-cancel">Cancel</button>
+          </div>
+
+          <div id="contactStatus" class="contact-status" aria-live="polite" aria-atomic="true"></div>
+        </div>
+
+        <div class="contact-alt">
+          <span class="contact-alt-label">Or reach out directly</span>
+          <a href="mailto:mwikosinyangwe@gmail.com" class="contact-alt-link">mwikosinyangwe@gmail.com</a>
+          <a href="https://github.com/mdsnn" target="_blank" rel="noreferrer noopener" class="contact-alt-link">github.com/mdsnn</a>
+        </div>
+      </div>
+    </div>
 
     <!-- Tape card template -->
     <template id="tapeTemplate">
