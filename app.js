@@ -152,42 +152,42 @@ const tapes = [
         heading: "Agent Memory with pgvector",
         eyebrow: "Post 1 of 6",
         body: "How I built persistent semantic user memory in Nearby Vibes using pgvector — without a separate vector database. The hard part was not the database. It was deciding what deserved to become memory.",
-        links: [{ label: "Read the post →", href: "blog/pgvector.html" }],
+        readPost: "pgvector",
         duration: 6000
       },
       {
         heading: "Prompt Caching in Production",
         eyebrow: "Post 2 of 6",
         body: "Prompt caching changed the economics of running a tool-using agent. The win came from treating tool definitions and system instructions as product infrastructure — stable, deliberate, and cacheable.",
-        links: [{ label: "Read the post →", href: "blog/prompt-caching.html" }],
+        readPost: "prompt-caching",
         duration: 6000
       },
       {
         heading: "LangChain: What I Used and Why",
         eyebrow: "Post 3 of 6",
         body: "I evaluated LangChain, borrowed its vocabulary, and built the Nearby Vibes agent without it. Not a verdict against the framework — a verdict about where the agent loop sat in the product.",
-        links: [{ label: "Read the post →", href: "blog/langchain.html" }],
+        readPost: "langchain",
         duration: 6000
       },
       {
         heading: "RAG Lessons From Real Products",
         eyebrow: "Post 4 of 6",
         body: "RAG is not one feature. It is the retrieval layer of your product. Chunking strategy, hybrid search, reranking, and knowing when retrieval makes things worse — all from building Nearby Vibes.",
-        links: [{ label: "Read the post →", href: "blog/rag.html" }],
+        readPost: "rag",
         duration: 6000
       },
       {
         heading: "Tooling: Claude Tool Use",
         eyebrow: "Post 5 of 6",
         body: "The most important part of a tool-using agent is the contract between the model and the tools. Tool tiers, structured failures, step budgets, and logging tool calls as product events.",
-        links: [{ label: "Read the post →", href: "blog/tool-use.html" }],
+        readPost: "tool-use",
         duration: 6000
       },
       {
         heading: "Proactive Autonomous Agents",
         eyebrow: "Post 6 of 6",
         body: "Scheduled jobs, Telegram nudges, nightly BI — the parts of Nearby Vibes that acted before the user asked. Autonomy is a ladder. The most powerful thing an agent can do is sometimes decide to do nothing.",
-        links: [{ label: "Read the post →", href: "blog/proactive-agents.html" }],
+        readPost: "proactive-agents",
         duration: 6000
       }
     ]
@@ -713,6 +713,9 @@ function renderScene(state = mode) {
     ? `<figure class="screen-image"><img src="${escAttr(scene.image)}" alt="${escAttr(scene.imageAlt || "")}"></figure>`
     : "";
   const linksHtml = scene.links ? buildLinks(scene.links) : "";
+  const readBtn   = scene.readPost
+    ? `<div class="link-row"><button type="button" class="read-post-btn" data-post="${escAttr(scene.readPost)}">▶ Read inside the store</button></div>`
+    : "";
 
   const label = state === "loaded" ? "Press play on the VCR." : state.toUpperCase();
   updateTransportDisplay(state);
@@ -729,6 +732,7 @@ function renderScene(state = mode) {
     ${badges}
     ${cards}
     ${linksHtml}
+    ${readBtn}
     <p class="scene-counter">${currentScene + 1} / ${currentTape.scenes.length}</p>`;
 
   updateDots();
@@ -1045,10 +1049,11 @@ function syncFsTransportButtons() {
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
-    if (contactOpen)    { closeContact(); return; }
+    if (contactOpen)    { closeContact();    return; }
+    if (readerOpen)     { closeReader();     return; }
     if (fsOpen)         { closeFullscreen(); return; }
   }
-  if ((e.key === "f" || e.key === "F") && !contactOpen) {
+  if ((e.key === "f" || e.key === "F") && !contactOpen && !readerOpen) {
     if (!fsOpen && currentTape) openFullscreen();
   }
 });
@@ -1130,6 +1135,286 @@ contactCancelBtn.addEventListener("click", closeContact);
 
 contactOverlay.addEventListener("click", (e) => {
   if (e.target === contactOverlay) closeContact();
+});
+
+/* ─────────────────────────────────────────
+   BLOG POST DATA
+   Each post: { id, title, eyebrow, sections[] }
+   Section types: "p", "h2", "h3", "ul", "code", "blockquote", "takeaway"
+───────────────────────────────────────── */
+const blogPosts = {
+  "pgvector": {
+    title: "How I Built Agent Memory with pgvector",
+    eyebrow: "Agent Memory · PostgreSQL · pgvector",
+    sections: [
+      { type: "p", text: "Agent memory sounds abstract until you have a user come back a week later and expect the product to remember something obvious." },
+      { type: "p", text: "In Nearby Vibes, the problem was not \"make the agent conscious.\" It was much more practical: if someone told the assistant they were vegetarian, hated cilantro, usually ordered for two, or preferred cheap late-night places, I did not want every future conversation to start from zero." },
+      { type: "h2", text: "The Problem I Was Actually Solving" },
+      { type: "p", text: "Nearby Vibes helps users find food and activity options around them. Preferences matter a lot: dietary constraints, cuisines liked or avoided, price sensitivity, distance tolerance, places already tried, and conversational hints like \"I want something cozy, not loud.\"" },
+      { type: "p", text: "Some of these are clean structured fields. But most preferences arrive messily — \"Last time the ramen place was good, but I want something less salty and closer to home.\" That sentence contains several useful future signals but does not fit neatly into one column." },
+      { type: "h2", text: "The Memory Schema" },
+      { type: "p", text: "I treated memory as a first-class table, not a side effect of chat history. The key decision was separating memory_type because not all memories behave the same way. A durable preference like \"does not eat pork\" needs to be treated differently from a soft signal like \"was in the mood for sushi last Friday.\"" },
+      { type: "code", text: "CREATE TABLE user_memories (\n  id              bigserial PRIMARY KEY,\n  user_id         uuid NOT NULL,\n  memory_type     text NOT NULL,\n  content         text NOT NULL,\n  confidence      numeric DEFAULT 0.8,\n  created_at      timestamptz DEFAULT now(),\n  embedding       vector(1536)\n);\n\nCREATE INDEX user_memories_embedding_hnsw_idx\n  ON user_memories\n  USING hnsw (embedding vector_cosine_ops);" },
+      { type: "h2", text: "Writing Memories" },
+      { type: "p", text: "The first version wrote every message into memory. Retrieval got worse almost immediately. Instead I added a small extraction step — the model decided whether a conversation turn contained durable preference information. If it did, it returned normalized memory candidates. The application then embedded only the content string and saved it." },
+      { type: "p", text: "The boring detail that mattered: memories need to be short, declarative, and phrased as reusable facts. \"User liked it\" is useless six weeks later. \"User liked the vegan dumplings at X because they were spicy but not greasy\" is actionable." },
+      { type: "h2", text: "Reading Memories" },
+      { type: "p", text: "At request time, I embedded the user's current intent and pulled back the closest memories using pgvector's cosine distance operator. In practice I rarely used vector similarity alone — I combined it with type filters so dietary constraints were always included regardless of similarity score." },
+      { type: "code", text: "WITH candidates AS (\n  SELECT id, memory_type, content, confidence,\n         1 - (embedding <=> $1::vector) AS similarity\n  FROM user_memories\n  WHERE user_id = $2\n  ORDER BY embedding <=> $1::vector\n  LIMIT 20\n)\nSELECT * FROM candidates\nWHERE similarity > 0.72\nORDER BY confidence DESC, similarity DESC, created_at DESC\nLIMIT 6;" },
+      { type: "h2", text: "What Surprised Me" },
+      { type: "ul", items: [
+        "More memory made the agent worse. Too many memories and the assistant became overfit to stale context.",
+        "Memory extraction mattered more than embedding quality. A clean sentence with an average model beat a raw transcript with a better model.",
+        "Deletion had to be designed early. \"I am avoiding gluten this week\" should not persist for months with the same weight as \"I have a peanut allergy.\""
+      ]},
+      { type: "h2", text: "What Did Not Work" },
+      { type: "p", text: "Treating conversation history as memory was easy to implement and bad in production. Chat turns were too verbose, retrieval matched on incidental words, and old temporary moods resurfaced as permanent preferences." },
+      { type: "p", text: "The better architecture was hybrid: structured fields for hard constraints, vector memory for fuzzy preferences, recency and confidence decay to prevent stale memories from dominating." },
+      { type: "takeaway", text: "pgvector worked well because it kept memory close to the rest of the product data — no separate vector database, no extra operational surface. But the database was not the hard part. The hard part was deciding what deserved to become memory. Agent memory is less about storing everything and more about forgetting on purpose." }
+    ]
+  },
+
+  "prompt-caching": {
+    title: "What Prompt Caching Changed in Production Cost",
+    eyebrow: "Claude API · Prompt Caching · Production Cost",
+    sections: [
+      { type: "p", text: "Prompt caching did not change the product architecture. It changed the economics of running it." },
+      { type: "p", text: "In Nearby Vibes, the expensive part of an agent call was not always the user's latest message. It was the repeated context around it: the system prompt, tool definitions, behavioral rules, examples, and working context that barely changed between calls. Before caching, every request paid for that entire static prefix again." },
+      { type: "h2", text: "What We Were Repeating" },
+      { type: "p", text: "Each request included a lot of stable material alongside the user's actual message: the core system prompt and response style rules, tool definitions and JSON schemas, tool usage policy, examples of good tool calls, and product-specific safety behavior." },
+      { type: "p", text: "The actual user message was often tiny — \"Anything good nearby that's still open?\" — but the model also needed the full operating manual. That operating manual was the obvious caching candidate." },
+      { type: "h2", text: "Implementation" },
+      { type: "p", text: "You mark the end of the stable prefix with cache_control. The API considers content in order: tools → system → messages. If your tools change between requests, everything below them in the cache is also invalidated — so tool definitions need to be stable in production." },
+      { type: "code", text: "const tools = [\n  { name: \"search_nearby_places\", ... },\n  {\n    name: \"get_user_memory\",\n    ...,\n    // Cache boundary: everything above this is stable\n    cache_control: { type: \"ephemeral\" },\n  },\n];\n\nconst response = await anthropic.messages.create({\n  model: process.env.CLAUDE_MODEL,\n  max_tokens: 800,\n  tools,\n  system: [{\n    type: \"text\",\n    text: NEARBY_VIBES_SYSTEM_PROMPT,\n    cache_control: { type: \"ephemeral\" },\n  }],\n  messages: [...],\n});\n\nconsole.log(response.usage);\n// { cache_creation_input_tokens, cache_read_input_tokens, ... }" },
+      { type: "h2", text: "The Gotchas" },
+      { type: "ul", items: [
+        "Minimum cache length. If the cacheable prefix is too short, it will not be cached even if you mark it.",
+        "Exact matching. The cached prefix must be byte-identical on every request. No timestamps, request IDs, or user-specific text in the cached section.",
+        "Tool churn during development. Every tweak to tool descriptions invalidates the prefix. The stable agent contract needs to actually be stable before caching delivers value.",
+        "Concurrent request bursts. A cache entry is not available until the first response starts writing it. A simultaneous burst may all miss on the first wave."
+      ]},
+      { type: "h2", text: "How the Mental Model Changed" },
+      { type: "p", text: "Before caching, the optimization question was: how small can I make every prompt? After caching, the question became: what parts of this prompt are stable enough to become infrastructure?" },
+      { type: "p", text: "That shift made the agent design cleaner. Tool definitions became more deliberate. The system prompt became less of a dumping ground. Dynamic context moved later in the request where it belonged." },
+      { type: "takeaway", text: "Prompt caching is not a magic discount button. It rewards stable prompt architecture. The win came from caching the parts of the agent that behaved like product infrastructure — tools, policies, examples, stable instructions. The parts that changed per user stayed uncached. That split made the product cheaper to run and easier to reason about." }
+    ]
+  },
+
+  "langchain": {
+    title: "LangChain: What I Used, What I Did Not, and Why",
+    eyebrow: "LangChain · Agent Frameworks · AI Tooling",
+    sections: [
+      { type: "p", text: "LangChain is one of those tools that people tend to discuss as a belief system. You are either supposed to love it because it gives you abstractions for LLM apps, or reject it because it hides too much." },
+      { type: "p", text: "My take is more boring: LangChain is useful when its abstractions match the shape of your problem. It gets in the way when you are still discovering that shape. For Nearby Vibes, I evaluated LangChain early, borrowed some of its vocabulary, and built the production agent without it." },
+      { type: "h2", text: "What LangChain Gets Right" },
+      { type: "p", text: "LangChain is genuinely good at getting a prototype moving quickly. If you need to wire together a model, prompt templates, tools, retrieval, memory, and output parsing, it gives you vocabulary and a component set. That matters when you are still learning what an LLM application even needs." },
+      { type: "p", text: "Even if you do not use it directly, you probably use ideas it helped popularize: retrievers, agents, tool calling, structured outputs, document loaders, evaluation traces. The vocabulary is valuable regardless of whether you adopt the library." },
+      { type: "h2", text: "Where It Started to Feel Heavy" },
+      { type: "p", text: "The more product-specific Nearby Vibes became, the more I cared about exact behavior between steps. I wanted direct control over how tools were selected, how memory was retrieved, how many tokens each section consumed, how errors surfaced, and how telemetry mapped to product events." },
+      { type: "p", text: "The issue was not that LangChain could not do these things. The issue was that I was spending more time understanding the abstraction than understanding the product behavior underneath it." },
+      { type: "h2", text: "The Agent Loop I Actually Wanted" },
+      { type: "code", text: "async function runNearbyAgent(input) {\n  const memory = await retrieveRelevantMemory(\n    input.userId, input.message\n  );\n\n  const response = await claude.messages.create({\n    model:    process.env.CLAUDE_MODEL,\n    system:   buildSystemPrompt({ memory }),\n    tools:    nearbyTools,\n    messages: input.messages,\n  });\n\n  if (response.stop_reason === \"tool_use\") {\n    const toolResults = await runRequestedTools(response.content);\n    return continueWithToolResults(input, response, toolResults);\n  }\n\n  return formatAgentResult(response);\n}" },
+      { type: "p", text: "That is not a lot of code. More importantly, every line maps directly to product behavior. When something went wrong I could answer exactly where it broke. That debugging path mattered more than a more elegant framework graph." },
+      { type: "h2", text: "The Rule I Use Now" },
+      { type: "blockquote", text: "Use frameworks for commodity complexity. Own the code where product behavior lives." },
+      { type: "p", text: "For Nearby Vibes, tool orchestration, memory, ranking, and prompt caching were product behavior. I would reach for LangChain faster when the integration surface is broad and standard: chat over documents, common vector stores, interchangeable model providers. I would build without it when the agent loop is the product itself." },
+      { type: "takeaway", text: "The best LangChain decision is not yes or no. It is deciding which parts of your AI system are generic enough to outsource to a framework and which parts are specific enough that you should own them. For Nearby Vibes, the agent loop pushed firmly into the second category." }
+    ]
+  },
+
+  "rag": {
+    title: "RAG Lessons From Building Retrieval Into Products",
+    eyebrow: "RAG · Retrieval · Vector Search · PostgreSQL",
+    sections: [
+      { type: "p", text: "RAG sounds like one technique. In practice it is a bundle of product decisions." },
+      { type: "p", text: "Retrieval-augmented generation means the model does not answer from its weights alone. You retrieve relevant context first, then give that context to the model. The definition is simple. The implementation is where things get interesting." },
+      { type: "h2", text: "The First Mistake: Treating RAG as Search Plus Prompting" },
+      { type: "p", text: "The naive version: embed question → vector search → stuff top chunks into prompt → answer. That can work for a demo. It breaks down when the product needs reliability." },
+      { type: "p", text: "The real questions are: What are you retrieving? How fresh is it? How trustworthy is it? What should happen when retrieval finds nothing? Does the user need an answer, a citation, or an action? In Nearby Vibes, retrieval was only useful when it changed a decision." },
+      { type: "h2", text: "Chunking Strategy" },
+      { type: "p", text: "Chunking defines what the system is capable of finding. I prefer semantic chunks over fixed-size chunks — a chunk should represent one complete idea: one menu item, one venue description, one memory, one policy section." },
+      { type: "p", text: "Smaller, meaningful chunks make retrieval more precise. The tradeoff is that answering a broad question may require retrieving and assembling several chunks." },
+      { type: "h2", text: "Hybrid Retrieval" },
+      { type: "p", text: "Vector similarity alone fails for names, exact terms, and proper nouns. Keyword search fails for semantic intent. For a product system, you usually want both." },
+      { type: "code", text: "WITH vector_matches AS (\n  SELECT id, title, body,\n    1 - (embedding <=> $1::vector) AS vector_score\n  FROM rag_chunks WHERE workspace_id = $2\n  ORDER BY embedding <=> $1::vector LIMIT 30\n),\nkeyword_matches AS (\n  SELECT id,\n    ts_rank_cd(search_vector, plainto_tsquery($3)) AS keyword_score\n  FROM rag_chunks\n  WHERE workspace_id = $2\n    AND search_vector @@ plainto_tsquery($3)\n  LIMIT 30\n)\nSELECT v.id, v.title, v.body,\n  (v.vector_score * 0.75 + COALESCE(k.keyword_score,0) * 0.25) AS score\nFROM vector_matches v\nLEFT JOIN keyword_matches k ON k.id = v.id\nORDER BY score DESC LIMIT 8;" },
+      { type: "h2", text: "Reranking" },
+      { type: "p", text: "The first retrieval pass should cast a wide net. It is looking for candidates. The reranker decides what actually belongs in the model's context. Do not assume the nearest vectors are the best final context — nearest in embedding space is not the same as most useful for the answer." },
+      { type: "h2", text: "What Retrieval Is Not For" },
+      { type: "ul", items: [
+        "Facts the model already knows well. Retrieving a summary of something obvious wastes tokens.",
+        "Structured data. If you need to know whether a venue is open right now, query the database directly. RAG is for text-heavy information that does not fit neatly into a query.",
+        "A substitute for bad data. If the corpus has stale venue information, retrieval will confidently surface stale answers."
+      ]},
+      { type: "takeaway", text: "RAG is not one feature. It is the retrieval layer of your product. The best RAG systems are opinionated about what they retrieve, when they retrieve it, and how much of it the model is allowed to see. Retrieval should make the next answer or action better. If it does not, it is just expensive context." }
+    ]
+  },
+
+  "tool-use": {
+    title: "Tooling Lessons From Claude Tool Use",
+    eyebrow: "Claude API · Tool Use · Agent Design",
+    sections: [
+      { type: "p", text: "The most important part of a tool-using agent is not the model. It is the contract between the model and the tools." },
+      { type: "p", text: "In Nearby Vibes, Claude was not generating text. It was deciding when to search nearby venues, retrieve user memory, check availability, rank options, and trigger follow-up workflows. That meant tools had to be designed like a product API, not random helper functions." },
+      { type: "h2", text: "Tool Tiers" },
+      { type: "p", text: "I ended up thinking about tools in tiers based on consequence and cost. Tier 1 was safe, read-only, cheap — retrieve memory, search venues, get suggestions. Tier 2 was more expensive or specific — fetch detailed venue data, check hours, get menus. Tier 3 changed state or contacted the user — save a memory, schedule a nudge, send a Telegram message." },
+      { type: "p", text: "The model did not get unlimited access across all tiers. The more consequential the tool, the more validation the application performed before executing it." },
+      { type: "h2", text: "Tool Definitions" },
+      { type: "p", text: "The best tool definitions were boring and explicit. I learned to avoid clever names — search_nearby_places beats discover_vibes every time. The model chooses tools far more reliably when names describe the action plainly." },
+      { type: "code", text: "const searchNearbyPlaces = {\n  name: \"search_nearby_places\",\n  description:\n    \"Search for nearby restaurants, cafes, bars, and activities \" +\n    \"that match the user's current request.\",\n  input_schema: {\n    type: \"object\",\n    properties: {\n      query: {\n        type: \"string\",\n        description: \"Short search phrase: 'vegetarian ramen', 'quiet wine bar'.\",\n      },\n      lat:  { type: \"number\" },\n      lng:  { type: \"number\" },\n      radius_meters: { type: \"integer\", minimum: 100, maximum: 5000 },\n      open_now: { type: \"boolean\" },\n    },\n    required: [\"query\", \"lat\", \"lng\", \"radius_meters\"],\n  },\n};" },
+      { type: "h2", text: "Tool Results" },
+      { type: "p", text: "Tool result shape matters as much as input shape. A result that gives the model something to reason with — distance, open status, why it matches, warnings — lets the model explain tradeoffs instead of inventing them." },
+      { type: "h2", text: "The Four Lessons" },
+      { type: "ul", items: [
+        "Make tools narrower than you want at first. A broad tool is easy to build and hard to control.",
+        "Validate tool input server-side. The model proposes arguments. The application owns execution.",
+        "Return structured failures. The model should be able to recover from any tool failure naturally.",
+        "Log tool calls as product events. The only way to improve an agent in production is a clear record of what it decided."
+      ]},
+      { type: "takeaway", text: "Tool use works best when the model is treated as a planner and the application as the executor. Claude can decide it needs nearby restaurants or user memory. But the application defines what those tools mean, validates inputs, enforces budgets, and decides which actions are allowed. That split made Nearby Vibes capable without making it uncontrollable." }
+    ]
+  },
+
+  "proactive-agents": {
+    title: "Proactive Autonomous Agents in Nearby Vibes",
+    eyebrow: "Autonomous Agents · APScheduler · Telegram",
+    sections: [
+      { type: "p", text: "Most agents are reactive. A user asks a question, the agent responds, and the loop ends." },
+      { type: "p", text: "The more interesting version is proactive: the system notices something, decides it is worth acting on, and reaches out or prepares work before the user asks. Nearby Vibes started as a conversational product, but the parts that felt most agentic were scheduled jobs, Telegram nudges, and nightly BI workflows." },
+      { type: "h2", text: "Reactive vs Proactive" },
+      { type: "p", text: "A reactive agent waits: user asks for dinner options, agent searches and replies. A proactive agent has a standing job: it is Friday at 5:30pm, this user often asks for casual dinner around this time, their usual spot is closed tonight, prepare three alternatives and send a nudge if they have opted in." },
+      { type: "p", text: "That second system is harder because it has to answer questions the user never asked: Is this useful right now? Is the confidence high enough? Has the user opted in? How recently did we nudge them?" },
+      { type: "h2", text: "The Architecture" },
+      { type: "code", text: "scheduler.add_job(\n    run_evening_nudge_scan,\n    trigger=\"cron\",\n    hour=\"16-20\",\n    minute=\"*/15\",\n    id=\"evening_nudge_scan\",\n)\n\nscheduler.add_job(\n    run_nightly_bi_summary,\n    trigger=\"cron\",\n    hour=2, minute=0,\n    id=\"nightly_bi_summary\",\n)" },
+      { type: "p", text: "The scheduler should not contain product intelligence. It wakes up the right workflow at the right time. The workflow decides whether anything deserves to happen." },
+      { type: "h2", text: "Telegram Nudges" },
+      { type: "p", text: "The critical function was should_send_nudge — where product restraint lives. It checked: opted in, quiet hours (no messages before 10am or after 9pm), frequency cap (max 2 nudges per 7 days), confidence threshold, and days since last app open. The agent can draft the message. It should not decide whether sending is appropriate." },
+      { type: "h2", text: "Nightly BI" },
+      { type: "p", text: "Nightly BI was proactive in a different direction. It did not message users. It prepared operational intelligence — pulling the day's events, aggregating usage and failures, asking the model to summarize notable patterns, and storing the result. The model surfaces things like: search quality degraded for late-night requests because most venues were already closed. That is not just reporting. It is the system preparing tomorrow's work." },
+      { type: "h2", text: "The Autonomy Ladder" },
+      { type: "ul", items: [
+        "Level 1: System drafts. Human reviews and sends.",
+        "Level 2: System sends low-risk messages under strict explicit rules.",
+        "Level 3: System takes reversible actions — saves a memory, creates a reminder.",
+        "Level 4: System takes consequential actions — books, purchases, contacts others."
+      ]},
+      { type: "p", text: "Nearby Vibes stayed mostly at Levels 2 and 3. That was intentional. Food recommendations and nudges should not create surprise obligations for users." },
+      { type: "h2", text: "Where Autonomous Agents Break Down" },
+      { type: "p", text: "Acting without enough signal. Acting on stale context. Frequency without restraint — the first nudge feels helpful, the fifth this week feels aggressive. And no explanation trail — if a proactive action causes a problem, the user and the product team need to understand why." },
+      { type: "takeaway", text: "The future of agents is not better chat boxes. It is systems that can watch, prepare, and occasionally act at the right moment. But proactive does not mean pushy. The best autonomous agents understand timing, permission, and silence. The most powerful action an agent can take is sometimes deciding to do nothing." }
+    ]
+  }
+};
+
+/* ─────────────────────────────────────────
+   BLOG READER
+───────────────────────────────────────── */
+let readerOpen   = false;
+let readerPostId = null;
+
+function openReader(postId) {
+  const post = blogPosts[postId];
+  if (!post) return;
+
+  readerOpen   = true;
+  readerPostId = postId;
+
+  // Build post HTML
+  const sectionsHtml = post.sections.map((s) => {
+    if (s.type === "p")           return `<p class="reader-p">${escHtml(s.text)}</p>`;
+    if (s.type === "h2")          return `<h2 class="reader-h2">${escHtml(s.text)}</h2>`;
+    if (s.type === "h3")          return `<h3 class="reader-h3">${escHtml(s.text)}</h3>`;
+    if (s.type === "blockquote")  return `<blockquote class="reader-blockquote"><p>${escHtml(s.text)}</p></blockquote>`;
+    if (s.type === "ul")          return `<ul class="reader-ul">${s.items.map(i => `<li>${escHtml(i)}</li>`).join("")}</ul>`;
+    if (s.type === "code")        return `<pre class="reader-pre"><code>${escHtml(s.text)}</code></pre>`;
+    if (s.type === "takeaway")    return `<div class="reader-takeaway"><span class="reader-takeaway-label">Takeaway</span><p>${escHtml(s.text)}</p></div>`;
+    return "";
+  }).join("");
+
+  // Render into fullscreen overlay in reader mode
+  fsOverlay.setAttribute("aria-hidden", "false");
+  fsOverlay.classList.add("open", "reader-mode");
+
+  fsScreen.className = "screen paused has-content fs-screen";
+  fsScreenContent.classList.remove("has-image");
+  fsScreenContent.innerHTML = `
+    <div class="reader-shell">
+      <div class="reader-header">
+        <span class="reader-eyebrow">${escHtml(post.eyebrow)}</span>
+        <h1 class="reader-title">${escHtml(post.title)}</h1>
+      </div>
+      <div class="reader-body">
+        ${sectionsHtml}
+        <div class="reader-footer-links">
+          <a href="blog/${postId}.html" target="_blank" rel="noreferrer noopener" class="reader-external">
+            ↗ Open as standalone page
+          </a>
+        </div>
+      </div>
+    </div>`;
+
+  // Hide normal fs-vcr-bar, show reader bar
+  document.querySelector(".fs-vcr-bar").style.display = "none";
+  document.querySelector("#fsSceneDots").style.display = "none";
+
+  // Inject reader bar if not already there
+  let readerBar = document.querySelector("#readerBar");
+  if (!readerBar) {
+    readerBar = document.createElement("div");
+    readerBar.id = "readerBar";
+    readerBar.className = "reader-bar";
+    readerBar.innerHTML = `
+      <span id="readerBarTitle" class="reader-bar-title"></span>
+      <button id="readerCloseBtn" type="button" class="reader-close-btn">✕ Close</button>`;
+    document.querySelector(".fs-shell").appendChild(readerBar);
+    document.querySelector("#readerCloseBtn").addEventListener("click", closeReader);
+  }
+
+  document.querySelector("#readerBarTitle").textContent = post.title;
+  readerBar.style.display = "flex";
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => fsOverlay.classList.add("fs-visible"));
+  });
+
+  document.body.style.overflow = "hidden";
+
+  // Scroll reader to top
+  fsScreenContent.scrollTop = 0;
+
+  beep("insert");
+}
+
+function closeReader() {
+  readerOpen   = false;
+  readerPostId = null;
+
+  fsOverlay.classList.remove("fs-visible", "reader-mode");
+  fsOverlay.setAttribute("aria-hidden", "true");
+
+  setTimeout(() => {
+    fsOverlay.classList.remove("open");
+    document.body.style.overflow = "";
+
+    // Restore normal fs-vcr-bar
+    document.querySelector(".fs-vcr-bar").style.display = "";
+    document.querySelector("#fsSceneDots").style.display = "";
+
+    const readerBar = document.querySelector("#readerBar");
+    if (readerBar) readerBar.style.display = "none";
+
+    // Re-sync the fullscreen content with main screen
+    syncFullscreen();
+  }, 240);
+
+  beep("click");
+}
+
+// Event delegation for read-post-btn (rendered dynamically inside screenContent)
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".read-post-btn");
+  if (btn) {
+    openReader(btn.dataset.post);
+  }
 });
 
 /* ─────────────────────────────────────────
