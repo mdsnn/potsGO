@@ -1420,10 +1420,202 @@ h1 {
 .contact-alt-link:hover { color: var(--green); }
 
 /* ─────────────────────────────────────────
-   BLOG READER — in-store reading mode
+   BLOG READER — inline inside screen
 ───────────────────────────────────────── */
 
-/* Read post button — inherits link-row styling but is a button */
+/* Reader shell — scrollable container filling the screen */
+.reader-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  padding: clamp(14px, 3vw, 28px);
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(118,255,157,0.3) transparent;
+}
+
+.reader-shell::-webkit-scrollbar { width: 3px; }
+.reader-shell::-webkit-scrollbar-track { background: transparent; }
+.reader-shell::-webkit-scrollbar-thumb {
+  background: rgba(118,255,157,0.3);
+  border-radius: 2px;
+}
+
+/* Reader header */
+.reader-header {
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid rgba(242,212,71,0.35);
+  flex-shrink: 0;
+}
+
+.reader-eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--gold);
+  font-family: "Courier New", monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.reader-title {
+  margin: 0;
+  font-size: clamp(1.1rem, 3vw, 2rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 2px 2px 0 #d22c37, 3px 3px 0 #081844;
+}
+
+/* Reader body */
+.reader-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
+}
+
+.reader-p {
+  margin: 0 0 1em;
+  font-size: clamp(0.82rem, 1.8vw, 0.98rem);
+  line-height: 1.65;
+  color: rgba(234,255,218,0.9);
+  max-width: 62ch;
+}
+
+.reader-h2 {
+  margin: 1.4em 0 0.4em;
+  font-size: clamp(0.88rem, 2vw, 1.1rem);
+  text-transform: uppercase;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.reader-h2::before {
+  content: "// ";
+  color: var(--gold);
+  font-family: "Courier New", monospace;
+  font-size: 0.85em;
+}
+
+.reader-h3 {
+  margin: 1em 0 0.35em;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: var(--cyan);
+  letter-spacing: 0.04em;
+}
+
+.reader-ul {
+  margin: 0 0 1em;
+  padding-left: 18px;
+  display: grid;
+  gap: 5px;
+  max-width: 60ch;
+}
+
+.reader-ul li {
+  font-size: clamp(0.8rem, 1.7vw, 0.95rem);
+  line-height: 1.55;
+  color: rgba(234,255,218,0.85);
+}
+
+.reader-blockquote {
+  margin: 1em 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--gold);
+  background: rgba(242,212,71,0.07);
+}
+
+.reader-blockquote p {
+  margin: 0;
+  font-style: italic;
+  color: rgba(255,247,209,0.85);
+  font-size: 0.92rem;
+}
+
+.reader-pre {
+  margin: 1em 0;
+  padding: 12px 14px;
+  background: rgba(0,0,0,0.65);
+  border: 1px solid rgba(101,232,255,0.15);
+  border-left: 3px solid var(--cyan);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(101,232,255,0.2) transparent;
+  flex-shrink: 0;
+}
+
+.reader-pre code {
+  font-family: "Courier New", monospace;
+  font-size: clamp(0.65rem, 1.4vw, 0.75rem);
+  line-height: 1.6;
+  color: #c8ffd4;
+  white-space: pre;
+}
+
+.reader-takeaway {
+  margin: 1.6em 0 1em;
+  padding: 12px 14px;
+  border: 2px solid var(--gold);
+  background: linear-gradient(90deg, rgba(17,84,164,0.35), rgba(9,17,38,0.6));
+  flex-shrink: 0;
+}
+
+.reader-takeaway-label {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 2px 6px;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 0.65rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.reader-takeaway p {
+  margin: 0;
+  font-size: clamp(0.82rem, 1.8vw, 0.95rem);
+  line-height: 1.55;
+  color: #fff7d1;
+}
+
+/* Footer — nav hint + external link */
+.reader-footer-links {
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.reader-nav-hint {
+  color: rgba(255,247,209,0.38);
+  font-family: "Courier New", monospace;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.reader-external {
+  color: rgba(255,247,209,0.45);
+  font-family: "Courier New", monospace;
+  font-size: 0.72rem;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: color 120ms ease;
+}
+
+.reader-external:hover { color: var(--green); }
+
+/* Read post button — no longer used but kept for safety */
 .read-post-btn {
   display: inline-flex;
   min-height: 32px;
@@ -1440,262 +1632,7 @@ h1 {
   letter-spacing: 0.03em;
 }
 
-.read-post-btn:hover {
-  background: rgba(118,255,157,0.28);
-}
-
-/* When overlay is in reader mode, the screen fills more height */
-.fs-overlay.reader-mode .fs-screen {
-  max-height: calc(100vh - 120px);
-  aspect-ratio: unset;
-  flex: 1;
-  min-height: 0;
-}
-
-.fs-overlay.reader-mode .fs-tv {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
-
-.fs-overlay.reader-mode .fs-shell {
-  height: calc(100vh - 48px);
-}
-
-/* Reader bar — replaces vcr controls bar in reader mode */
-.reader-bar {
-  display: none;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 10px 16px;
-  border-radius: 4px;
-  background: linear-gradient(180deg, #24252c, #111217);
-  box-shadow: 0 8px 30px rgba(0,0,0,0.6);
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
-
-.reader-bar-title {
-  color: var(--gold);
-  font-family: "Courier New", monospace;
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.reader-close-btn {
-  flex-shrink: 0;
-  min-height: 38px;
-  padding: 0 16px;
-  border: 1px solid rgba(233,52,52,0.45);
-  border-radius: 2px;
-  background: linear-gradient(180deg, #3d1c1c, #200e0e);
-  color: #ffaaaa;
-  cursor: pointer;
-  font-family: "Courier New", monospace;
-  font-size: 0.8rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  font-weight: 900;
-  transition: background 100ms ease, color 100ms ease;
-}
-
-.reader-close-btn:hover {
-  background: linear-gradient(180deg, #5a2828, #321414);
-  color: #ffcccc;
-}
-
-/* Reader shell — scrollable container inside the screen */
-.reader-shell {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  height: 100%;
-  overflow-y: auto;
-  padding: clamp(20px, 4vw, 40px);
-  scroll-behavior: smooth;
-  /* Custom scrollbar */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(118,255,157,0.3) transparent;
-}
-
-.reader-shell::-webkit-scrollbar { width: 4px; }
-.reader-shell::-webkit-scrollbar-track { background: transparent; }
-.reader-shell::-webkit-scrollbar-thumb {
-  background: rgba(118,255,157,0.3);
-  border-radius: 2px;
-}
-
-/* Reader header */
-.reader-header {
-  margin-bottom: 24px;
-  padding-bottom: 20px;
-  border-bottom: 2px solid rgba(242,212,71,0.35);
-}
-
-.reader-eyebrow {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--gold);
-  font-family: "Courier New", monospace;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-}
-
-.reader-title {
-  margin: 0;
-  font-size: clamp(1.4rem, 3.5vw, 2.4rem);
-  line-height: 0.95;
-  text-transform: uppercase;
-  color: #fff;
-  text-shadow: 2px 2px 0 #d22c37, 4px 4px 0 #081844;
-}
-
-/* Reader body */
-.reader-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.reader-p {
-  margin: 0 0 1.2em;
-  font-size: clamp(0.9rem, 2vw, 1.05rem);
-  line-height: 1.7;
-  color: rgba(234,255,218,0.9);
-  max-width: 64ch;
-}
-
-.reader-h2 {
-  margin: 1.8em 0 0.5em;
-  font-size: clamp(1rem, 2.5vw, 1.3rem);
-  text-transform: uppercase;
-  color: #fff;
-  letter-spacing: 0.02em;
-}
-
-.reader-h2::before {
-  content: "// ";
-  color: var(--gold);
-  font-family: "Courier New", monospace;
-  font-size: 0.85em;
-}
-
-.reader-h3 {
-  margin: 1.2em 0 0.4em;
-  font-size: 0.95rem;
-  text-transform: uppercase;
-  color: var(--cyan);
-  letter-spacing: 0.04em;
-}
-
-.reader-ul {
-  margin: 0 0 1.2em;
-  padding-left: 20px;
-  display: grid;
-  gap: 6px;
-  max-width: 62ch;
-}
-
-.reader-ul li {
-  font-size: clamp(0.88rem, 1.9vw, 1rem);
-  line-height: 1.6;
-  color: rgba(234,255,218,0.85);
-}
-
-.reader-blockquote {
-  margin: 1.2em 0;
-  padding: 12px 16px;
-  border-left: 3px solid var(--gold);
-  background: rgba(242,212,71,0.07);
-}
-
-.reader-blockquote p {
-  margin: 0;
-  font-style: italic;
-  color: rgba(255,247,209,0.85);
-  font-size: 1rem;
-}
-
-.reader-pre {
-  margin: 1.2em 0;
-  padding: 16px 18px;
-  background: rgba(0,0,0,0.6);
-  border: 1px solid rgba(101,232,255,0.18);
-  border-left: 3px solid var(--cyan);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(101,232,255,0.2) transparent;
-}
-
-.reader-pre code {
-  font-family: "Courier New", monospace;
-  font-size: clamp(0.72rem, 1.6vw, 0.82rem);
-  line-height: 1.65;
-  color: #c8ffd4;
-  white-space: pre;
-}
-
-.reader-takeaway {
-  margin: 2em 0 1em;
-  padding: 16px 18px;
-  border: 2px solid var(--gold);
-  background: linear-gradient(90deg, rgba(17,84,164,0.35), rgba(9,17,38,0.6));
-}
-
-.reader-takeaway-label {
-  display: inline-block;
-  margin-bottom: 8px;
-  padding: 2px 7px;
-  background: var(--gold);
-  color: var(--ink);
-  font-size: 0.68rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.reader-takeaway p {
-  margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.6;
-  color: #fff7d1;
-}
-
-.reader-footer-links {
-  margin-top: 32px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255,255,255,0.1);
-}
-
-.reader-external {
-  color: rgba(255,247,209,0.45);
-  font-family: "Courier New", monospace;
-  font-size: 0.75rem;
-  text-decoration: none;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  transition: color 120ms ease;
-}
-
-.reader-external:hover { color: var(--green); }
-
-/* Mobile reader adjustments */
-@media (max-width: 560px) {
-  .reader-shell { padding: 16px; }
-  .reader-pre   { padding: 12px; }
-  .reader-bar   { padding: 8px 12px; }
-  .reader-bar-title { display: none; }
-}
+.read-post-btn:hover { background: rgba(118,255,157,0.28); }
 
 /* ─────────────────────────────────────────
    KEYFRAMES

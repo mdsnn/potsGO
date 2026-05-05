@@ -138,58 +138,16 @@ const tapes = [
     art: "linear-gradient(135deg, #ff5caa, #442264 48%, #08090d)",
     tilt: "2deg",
     runtime: "06:00",
+    noAutoAdvance: true,
     staffTitle: "Build notes from the night shift.",
     staffBody: "Six posts on agent memory, prompt caching, RAG, LangChain, tool use, and proactive agents — all from building Nearby Vibes.",
     scenes: [
-      {
-        heading: "After Hours",
-        eyebrow: "Build notes · Nearby Vibes",
-        body: "Six posts from building a production AI agent. Not tutorials — real decisions, real failures, and what actually shipped.",
-        badges: ["pgvector", "Prompt caching", "RAG", "LangChain", "Tool use", "Proactive agents"],
-        duration: 5000
-      },
-      {
-        heading: "Agent Memory with pgvector",
-        eyebrow: "Post 1 of 6",
-        body: "How I built persistent semantic user memory in Nearby Vibes using pgvector — without a separate vector database. The hard part was not the database. It was deciding what deserved to become memory.",
-        readPost: "pgvector",
-        duration: 6000
-      },
-      {
-        heading: "Prompt Caching in Production",
-        eyebrow: "Post 2 of 6",
-        body: "Prompt caching changed the economics of running a tool-using agent. The win came from treating tool definitions and system instructions as product infrastructure — stable, deliberate, and cacheable.",
-        readPost: "prompt-caching",
-        duration: 6000
-      },
-      {
-        heading: "LangChain: What I Used and Why",
-        eyebrow: "Post 3 of 6",
-        body: "I evaluated LangChain, borrowed its vocabulary, and built the Nearby Vibes agent without it. Not a verdict against the framework — a verdict about where the agent loop sat in the product.",
-        readPost: "langchain",
-        duration: 6000
-      },
-      {
-        heading: "RAG Lessons From Real Products",
-        eyebrow: "Post 4 of 6",
-        body: "RAG is not one feature. It is the retrieval layer of your product. Chunking strategy, hybrid search, reranking, and knowing when retrieval makes things worse — all from building Nearby Vibes.",
-        readPost: "rag",
-        duration: 6000
-      },
-      {
-        heading: "Tooling: Claude Tool Use",
-        eyebrow: "Post 5 of 6",
-        body: "The most important part of a tool-using agent is the contract between the model and the tools. Tool tiers, structured failures, step budgets, and logging tool calls as product events.",
-        readPost: "tool-use",
-        duration: 6000
-      },
-      {
-        heading: "Proactive Autonomous Agents",
-        eyebrow: "Post 6 of 6",
-        body: "Scheduled jobs, Telegram nudges, nightly BI — the parts of Nearby Vibes that acted before the user asked. Autonomy is a ladder. The most powerful thing an agent can do is sometimes decide to do nothing.",
-        readPost: "proactive-agents",
-        duration: 6000
-      }
+      { heading: "Agent Memory with pgvector",      eyebrow: "Post 1 of 6", readPost: "pgvector" },
+      { heading: "Prompt Caching in Production",    eyebrow: "Post 2 of 6", readPost: "prompt-caching" },
+      { heading: "LangChain: What I Used and Why",  eyebrow: "Post 3 of 6", readPost: "langchain" },
+      { heading: "RAG Lessons From Real Products",  eyebrow: "Post 4 of 6", readPost: "rag" },
+      { heading: "Tooling: Claude Tool Use",        eyebrow: "Post 5 of 6", readPost: "tool-use" },
+      { heading: "Proactive Autonomous Agents",     eyebrow: "Post 6 of 6", readPost: "proactive-agents" }
     ]
   },
 
@@ -699,6 +657,45 @@ function renderScene(state = mode) {
   const scene    = currentTape.scenes[currentScene] || currentTape.scenes[0];
   const hasImage = !!scene.image;
 
+  // ── Blog post inline reader ──
+  if (scene.readPost) {
+    const post = blogPosts[scene.readPost];
+    if (post) {
+      screenContent.classList.remove("has-image");
+      updateTransportDisplay(state);
+
+      const sectionsHtml = post.sections.map((s) => {
+        if (s.type === "p")          return `<p class="reader-p">${escHtml(s.text)}</p>`;
+        if (s.type === "h2")         return `<h2 class="reader-h2">${escHtml(s.text)}</h2>`;
+        if (s.type === "h3")         return `<h3 class="reader-h3">${escHtml(s.text)}</h3>`;
+        if (s.type === "blockquote") return `<blockquote class="reader-blockquote"><p>${escHtml(s.text)}</p></blockquote>`;
+        if (s.type === "ul")         return `<ul class="reader-ul">${s.items.map(i => `<li>${escHtml(i)}</li>`).join("")}</ul>`;
+        if (s.type === "code")       return `<pre class="reader-pre"><code>${escHtml(s.text)}</code></pre>`;
+        if (s.type === "takeaway")   return `<div class="reader-takeaway"><span class="reader-takeaway-label">Takeaway</span><p>${escHtml(s.text)}</p></div>`;
+        return "";
+      }).join("");
+
+      screenContent.innerHTML = `
+        <div class="reader-shell">
+          <div class="reader-header">
+            <span class="reader-eyebrow">${escHtml(scene.eyebrow)} · After Hours</span>
+            <h1 class="reader-title">${escHtml(post.title)}</h1>
+          </div>
+          <div class="reader-body">
+            ${sectionsHtml}
+            <div class="reader-footer-links">
+              <span class="reader-nav-hint">◀◀ Rew / FF ▶▶ to browse posts</span>
+              <a href="blog/${scene.readPost}.html" target="_blank" rel="noreferrer noopener" class="reader-external">↗ Open as standalone page</a>
+            </div>
+          </div>
+        </div>`;
+
+      updateDots();
+      syncFullscreen();
+      return;
+    }
+  }
+
   const eyebrow   = scene.eyebrow ? `<p class="scene-eyebrow">${escHtml(scene.eyebrow)}</p>` : "";
   const body      = scene.body    ? `<p>${escHtml(scene.body)}</p>` : "";
   const list      = scene.list    ? `<ul>${scene.list.map((item) => `<li>${escHtml(item)}</li>`).join("")}</ul>` : "";
@@ -713,9 +710,6 @@ function renderScene(state = mode) {
     ? `<figure class="screen-image"><img src="${escAttr(scene.image)}" alt="${escAttr(scene.imageAlt || "")}"></figure>`
     : "";
   const linksHtml = scene.links ? buildLinks(scene.links) : "";
-  const readBtn   = scene.readPost
-    ? `<div class="link-row"><button type="button" class="read-post-btn" data-post="${escAttr(scene.readPost)}">▶ Read inside the store</button></div>`
-    : "";
 
   const label = state === "loaded" ? "Press play on the VCR." : state.toUpperCase();
   updateTransportDisplay(state);
@@ -732,7 +726,6 @@ function renderScene(state = mode) {
     ${badges}
     ${cards}
     ${linksHtml}
-    ${readBtn}
     <p class="scene-counter">${currentScene + 1} / ${currentTape.scenes.length}</p>`;
 
   updateDots();
@@ -881,6 +874,7 @@ function ejectTape() {
 function startPlayback() {
   stopPlayback();
   if (!currentTape || currentTape.game) return;
+  if (currentTape.noAutoAdvance) return;  // blog tape — user navigates manually
 
   const scene = currentTape.scenes[currentScene] || {};
   playbackTimer = window.setTimeout(() => {
@@ -1050,10 +1044,9 @@ function syncFsTransportButtons() {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     if (contactOpen)    { closeContact();    return; }
-    if (readerOpen)     { closeReader();     return; }
     if (fsOpen)         { closeFullscreen(); return; }
   }
-  if ((e.key === "f" || e.key === "F") && !contactOpen && !readerOpen) {
+  if ((e.key === "f" || e.key === "F") && !contactOpen) {
     if (!fsOpen && currentTape) openFullscreen();
   }
 });
@@ -1304,118 +1297,6 @@ const blogPosts = {
     ]
   }
 };
-
-/* ─────────────────────────────────────────
-   BLOG READER
-───────────────────────────────────────── */
-let readerOpen   = false;
-let readerPostId = null;
-
-function openReader(postId) {
-  const post = blogPosts[postId];
-  if (!post) return;
-
-  readerOpen   = true;
-  readerPostId = postId;
-
-  // Build post HTML
-  const sectionsHtml = post.sections.map((s) => {
-    if (s.type === "p")           return `<p class="reader-p">${escHtml(s.text)}</p>`;
-    if (s.type === "h2")          return `<h2 class="reader-h2">${escHtml(s.text)}</h2>`;
-    if (s.type === "h3")          return `<h3 class="reader-h3">${escHtml(s.text)}</h3>`;
-    if (s.type === "blockquote")  return `<blockquote class="reader-blockquote"><p>${escHtml(s.text)}</p></blockquote>`;
-    if (s.type === "ul")          return `<ul class="reader-ul">${s.items.map(i => `<li>${escHtml(i)}</li>`).join("")}</ul>`;
-    if (s.type === "code")        return `<pre class="reader-pre"><code>${escHtml(s.text)}</code></pre>`;
-    if (s.type === "takeaway")    return `<div class="reader-takeaway"><span class="reader-takeaway-label">Takeaway</span><p>${escHtml(s.text)}</p></div>`;
-    return "";
-  }).join("");
-
-  // Render into fullscreen overlay in reader mode
-  fsOverlay.setAttribute("aria-hidden", "false");
-  fsOverlay.classList.add("open", "reader-mode");
-
-  fsScreen.className = "screen paused has-content fs-screen";
-  fsScreenContent.classList.remove("has-image");
-  fsScreenContent.innerHTML = `
-    <div class="reader-shell">
-      <div class="reader-header">
-        <span class="reader-eyebrow">${escHtml(post.eyebrow)}</span>
-        <h1 class="reader-title">${escHtml(post.title)}</h1>
-      </div>
-      <div class="reader-body">
-        ${sectionsHtml}
-        <div class="reader-footer-links">
-          <a href="blog/${postId}.html" target="_blank" rel="noreferrer noopener" class="reader-external">
-            ↗ Open as standalone page
-          </a>
-        </div>
-      </div>
-    </div>`;
-
-  // Hide normal fs-vcr-bar, show reader bar
-  document.querySelector(".fs-vcr-bar").style.display = "none";
-  document.querySelector("#fsSceneDots").style.display = "none";
-
-  // Inject reader bar if not already there
-  let readerBar = document.querySelector("#readerBar");
-  if (!readerBar) {
-    readerBar = document.createElement("div");
-    readerBar.id = "readerBar";
-    readerBar.className = "reader-bar";
-    readerBar.innerHTML = `
-      <span id="readerBarTitle" class="reader-bar-title"></span>
-      <button id="readerCloseBtn" type="button" class="reader-close-btn">✕ Close</button>`;
-    document.querySelector(".fs-shell").appendChild(readerBar);
-    document.querySelector("#readerCloseBtn").addEventListener("click", closeReader);
-  }
-
-  document.querySelector("#readerBarTitle").textContent = post.title;
-  readerBar.style.display = "flex";
-
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => fsOverlay.classList.add("fs-visible"));
-  });
-
-  document.body.style.overflow = "hidden";
-
-  // Scroll reader to top
-  fsScreenContent.scrollTop = 0;
-
-  beep("insert");
-}
-
-function closeReader() {
-  readerOpen   = false;
-  readerPostId = null;
-
-  fsOverlay.classList.remove("fs-visible", "reader-mode");
-  fsOverlay.setAttribute("aria-hidden", "true");
-
-  setTimeout(() => {
-    fsOverlay.classList.remove("open");
-    document.body.style.overflow = "";
-
-    // Restore normal fs-vcr-bar
-    document.querySelector(".fs-vcr-bar").style.display = "";
-    document.querySelector("#fsSceneDots").style.display = "";
-
-    const readerBar = document.querySelector("#readerBar");
-    if (readerBar) readerBar.style.display = "none";
-
-    // Re-sync the fullscreen content with main screen
-    syncFullscreen();
-  }, 240);
-
-  beep("click");
-}
-
-// Event delegation for read-post-btn (rendered dynamically inside screenContent)
-document.addEventListener("click", (e) => {
-  const btn = e.target.closest(".read-post-btn");
-  if (btn) {
-    openReader(btn.dataset.post);
-  }
-});
 
 /* ─────────────────────────────────────────
    FAST PATH NAV
