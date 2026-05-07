@@ -1,0 +1,38 @@
+01
+beginner
+What is Go and why was it created?
+▼
+02
+beginner
+What are the basic data types in Go?
+▼
+03
+beginner
+What is the difference between var and := in Go?
+▼
+04
+beginner
+What are zero values in Go?
+▼
+05
+beginner
+How do arrays and slices differ in Go?
+▼
+06
+beginner
+What is a map in Go and how do you use it?
+07
+beginner
+How do you handle errors in Go?
+▼
+08
+beginner
+What does defer do?
+▼
+09
+beginner
+What are Go structs and how do you define methods on them?
+▼
+10
+beginner
+What is a goroutine?

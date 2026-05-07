@@ -338,6 +338,19 @@ const contactCancelBtn = document.querySelector("#contactCancelBtn");
 const contactStatus    = document.querySelector("#contactStatus");
 
 /* ─────────────────────────────────────────
+   DOM REFS — CINEMA (built dynamically)
+───────────────────────────────────────── */
+let cinemaBackdrop  = null;
+let cinemaShell     = null;
+let cinemaScreen    = null;
+let cinemaContent   = null;
+let cinemaDisplay   = null;
+let cinemaTapeLabel = null;
+let cinemaSceneDots = null;
+let cinemaOpen      = false;
+const cinemaControls = {};
+
+/* ─────────────────────────────────────────
    STATE
 ───────────────────────────────────────── */
 let currentTape    = null;
@@ -524,6 +537,7 @@ function onTouchEnd(e) {
 function rentTape(id) {
   stopGame();
   stopPlayback();
+  collapseCinema();
   recordUserAction();
 
   currentTape  = tapes.find((tape) => tape.id === id);
@@ -535,7 +549,6 @@ function rentTape(id) {
     node.classList.toggle("rented", node.dataset.id === id);
   });
 
-  // Highlight active fast path button
   document.querySelectorAll(".fast-path-btn").forEach((btn) => {
     btn.classList.toggle("fp-active", btn.dataset.tape === id);
   });
@@ -579,11 +592,9 @@ function renderSceneDots() {
   if (!currentTape || currentTape.scenes.length <= 1) return;
 
   currentTape.scenes.forEach((_, index) => {
-    // Main TV dot
     const dot = makeDot(index);
     sceneDots.appendChild(dot);
 
-    // Fullscreen mirror
     const fsDot = makeDot(index);
     fsSceneDots.appendChild(fsDot);
   });
@@ -602,7 +613,9 @@ function makeDot(index) {
 }
 
 function updateDots() {
-  [sceneDots, fsSceneDots].forEach((container) => {
+  const containers = [sceneDots, fsSceneDots];
+  if (cinemaSceneDots) containers.push(cinemaSceneDots);
+  containers.forEach((container) => {
     container.querySelectorAll(".scene-dot").forEach((dot, index) => {
       const active = index === currentScene;
       dot.classList.toggle("dot-active", active);
@@ -618,12 +631,10 @@ function jumpToScene(index) {
   currentScene = Math.max(0, Math.min(index, currentTape.scenes.length - 1));
   tapeEnded    = false;
 
-  // If playing, keep playing from the new scene
   if (mode === "playing") {
     renderScene("playing");
     startPlayback();
   } else {
-    // Put into paused state so user can see the scene then press play
     mode = "paused";
     screen.classList.remove("playing", "rewinding", "fast");
     screen.classList.add("paused", "has-content");
@@ -633,6 +644,7 @@ function jumpToScene(index) {
   }
   updateDots();
   syncFullscreen();
+  syncCinema();
   beep("click");
 }
 
@@ -646,6 +658,7 @@ function renderScene(state = mode) {
       <p class="standby">NO TAPE</p>
       <p class="standby-small">Drag a tape to the VCR slot, or click one to rent it.</p>`;
     syncFullscreen();
+    syncCinema();
     return;
   }
 
@@ -692,6 +705,7 @@ function renderScene(state = mode) {
 
       updateDots();
       syncFullscreen();
+      syncCinema();
       return;
     }
   }
@@ -730,6 +744,7 @@ function renderScene(state = mode) {
 
   updateDots();
   syncFullscreen();
+  syncCinema();
 }
 
 function buildLinks(links) {
@@ -787,6 +802,8 @@ function setMode(nextMode) {
     renderScene("playing");
     startPlayback();
     beep("play");
+    openCinema();
+    syncCinema();
     syncFullscreen();
     return;
   }
@@ -797,6 +814,7 @@ function setMode(nextMode) {
     setTransportActive(controls.pause);
     renderScene("paused");
     beep("click");
+    syncCinema();
     syncFullscreen();
     return;
   }
@@ -809,6 +827,7 @@ function setMode(nextMode) {
     setTransportActive(controls.rewind);
     renderScene("rewinding");
     beep("rewind");
+    syncCinema();
     syncFullscreen();
     return;
   }
@@ -821,6 +840,7 @@ function setMode(nextMode) {
     setTransportActive(controls.fast);
     renderScene("fast-forward");
     beep("fast");
+    syncCinema();
     syncFullscreen();
   }
 }
@@ -835,6 +855,7 @@ function setTransportActive(activeBtn) {
     activeBtn.setAttribute("aria-pressed", "true");
   }
   syncFsTransportButtons();
+  syncCinemaTransport();
 }
 
 /* ─────────────────────────────────────────
@@ -843,6 +864,7 @@ function setTransportActive(activeBtn) {
 function ejectTape() {
   stopGame();
   stopPlayback();
+  collapseCinema();
   recordUserAction();
 
   currentTape  = null;
@@ -874,7 +896,7 @@ function ejectTape() {
 function startPlayback() {
   stopPlayback();
   if (!currentTape || currentTape.game) return;
-  if (currentTape.noAutoAdvance) return;  // blog tape — user navigates manually
+  if (currentTape.noAutoAdvance) return;
 
   const scene = currentTape.scenes[currentScene] || {};
   playbackTimer = window.setTimeout(() => {
@@ -906,6 +928,7 @@ function startPlayback() {
     vcrDisplay.textContent = "END";
     updateTapeProgress(1);
     syncFullscreen();
+    syncCinema();
     beep("eject");
   }, scene.duration || 4500);
 }
@@ -967,6 +990,222 @@ function applyTracking() {
   fsScreen.style.setProperty("--tracking-opacity", distortion.toFixed(2));
   fsScreen.style.setProperty("--tracking-shift",   `${trackingLevel * 2}px`);
   fsTrackingLabel.textContent = `TRACKING ${trackingLevel}`;
+  if (cinemaScreen) {
+    cinemaScreen.style.setProperty("--tracking-opacity", distortion.toFixed(2));
+    cinemaScreen.style.setProperty("--tracking-shift",   `${trackingLevel * 2}px`);
+  }
+}
+
+/* ─────────────────────────────────────────
+   CINEMA MODE — cinematic expand on play
+───────────────────────────────────────── */
+function buildCinema() {
+  if (cinemaShell) return; // already built
+
+  // Backdrop
+  cinemaBackdrop = document.createElement("div");
+  cinemaBackdrop.className = "cinema-backdrop";
+  cinemaBackdrop.addEventListener("click", collapseCinema);
+  document.body.appendChild(cinemaBackdrop);
+
+  // Shell
+  cinemaShell = document.createElement("div");
+  cinemaShell.className = "cinema-shell";
+  cinemaShell.setAttribute("role", "dialog");
+  cinemaShell.setAttribute("aria-modal", "true");
+  cinemaShell.setAttribute("aria-label", "Cinema player");
+
+  // TV bezel wrap
+  const wrap = document.createElement("div");
+  wrap.className = "cinema-screen-wrap";
+
+  cinemaTapeLabel = document.createElement("div");
+  cinemaTapeLabel.className = "cinema-tape-label";
+  wrap.appendChild(cinemaTapeLabel);
+
+  cinemaScreen = document.createElement("div");
+  cinemaScreen.className = "screen paused cinema-screen";
+  cinemaContent = document.createElement("div");
+  cinemaContent.className = "screen-content";
+  cinemaScreen.appendChild(cinemaContent);
+  wrap.appendChild(cinemaScreen);
+
+  cinemaSceneDots = document.createElement("div");
+  cinemaSceneDots.className = "cinema-scene-dots scene-dots";
+  cinemaSceneDots.setAttribute("role", "tablist");
+  cinemaSceneDots.setAttribute("aria-label", "Jump to scene");
+  wrap.appendChild(cinemaSceneDots);
+
+  cinemaShell.appendChild(wrap);
+
+  // VCR control bar
+  const bar = document.createElement("div");
+  bar.className = "cinema-vcr-bar";
+
+  const dispCol = document.createElement("div");
+  dispCol.className = "cinema-display-col";
+  const brand = document.createElement("div");
+  brand.className = "brand";
+  brand.setAttribute("aria-hidden", "true");
+  brand.textContent = "VIDEOMATIC 4000";
+  cinemaDisplay = document.createElement("div");
+  cinemaDisplay.className = "vcr-display";
+  cinemaDisplay.setAttribute("aria-live", "polite");
+  cinemaDisplay.textContent = "--:--";
+  dispCol.appendChild(brand);
+  dispCol.appendChild(cinemaDisplay);
+  bar.appendChild(dispCol);
+
+  // Transport buttons
+  const transport = document.createElement("div");
+  transport.className = "cinema-transport";
+  transport.setAttribute("role", "group");
+  transport.setAttribute("aria-label", "Cinema transport controls");
+
+  const btnDefs = [
+    { key: "play",   label: "▶ Play"  },
+    { key: "pause",  label: "⏸ Pause" },
+    { key: "rewind", label: "◀◀ Rew"  },
+    { key: "fast",   label: "FF ▶▶"   },
+    { key: "eject",  label: "⏏ Eject" }
+  ];
+
+  btnDefs.forEach(({ key, label }) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = label;
+    if (key === "eject") btn.classList.add("eject-btn");
+    transport.appendChild(btn);
+    cinemaControls[key] = btn;
+  });
+
+  bar.appendChild(transport);
+
+  // Tracking
+  const trkCol = document.createElement("div");
+  trkCol.className = "cinema-tracking-col";
+  trkCol.setAttribute("role", "group");
+  const trkDown = document.createElement("button");
+  trkDown.type = "button";
+  trkDown.textContent = "TRK −";
+  const trkUp = document.createElement("button");
+  trkUp.type = "button";
+  trkUp.textContent = "TRK +";
+  trkCol.appendChild(trkDown);
+  trkCol.appendChild(trkUp);
+  cinemaControls.trackingDown = trkDown;
+  cinemaControls.trackingUp   = trkUp;
+  bar.appendChild(trkCol);
+
+  // Collapse button
+  const collapseBtn = document.createElement("button");
+  collapseBtn.type = "button";
+  collapseBtn.className = "cinema-collapse-btn";
+  collapseBtn.textContent = "⊡ MINIMIZE";
+  collapseBtn.setAttribute("aria-label", "Collapse cinema view");
+  collapseBtn.addEventListener("click", collapseCinema);
+  cinemaControls.collapse = collapseBtn;
+  bar.appendChild(collapseBtn);
+
+  cinemaShell.appendChild(bar);
+  document.body.appendChild(cinemaShell);
+
+  // Wire transport events
+  cinemaControls.play.addEventListener("click",         () => setMode("playing"));
+  cinemaControls.pause.addEventListener("click",        () => setMode("paused"));
+  cinemaControls.rewind.addEventListener("click",       () => setMode("rewinding"));
+  cinemaControls.fast.addEventListener("click",         () => setMode("fast"));
+  cinemaControls.eject.addEventListener("click",        ejectTape);
+  cinemaControls.trackingDown.addEventListener("click", () => adjustTracking(-1));
+  cinemaControls.trackingUp.addEventListener("click",   () => adjustTracking(1));
+}
+
+function openCinema() {
+  // Only trigger on wide screens; skip for the mini-game
+  if (window.innerWidth < 900) return;
+  if (currentTape && currentTape.game) return;
+  if (cinemaOpen) return;
+
+  buildCinema();
+  cinemaOpen = true;
+  document.body.style.overflow = "hidden";
+
+  cinemaBackdrop.classList.add("cinema-lit");
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => cinemaShell.classList.add("cinema-open"));
+  });
+
+  syncCinema();
+  cinemaControls.collapse.focus();
+}
+
+function collapseCinema() {
+  if (!cinemaOpen) return;
+  cinemaOpen = false;
+  if (cinemaShell)   cinemaShell.classList.remove("cinema-open");
+  if (cinemaBackdrop) cinemaBackdrop.classList.remove("cinema-lit");
+  setTimeout(() => {
+    document.body.style.overflow = "";
+  }, 540);
+  expandBtn.focus();
+  beep("click");
+}
+
+function syncCinema() {
+  if (!cinemaOpen || !cinemaShell) return;
+
+  // Sync screen state classes
+  const stateClasses = ["playing", "paused", "rewinding", "fast", "has-content"];
+  cinemaScreen.classList.remove(...stateClasses);
+  stateClasses.forEach(cls => {
+    if (screen.classList.contains(cls)) cinemaScreen.classList.add(cls);
+  });
+
+  // Sync content HTML
+  cinemaContent.classList.toggle("has-image", screenContent.classList.contains("has-image"));
+  cinemaContent.innerHTML = screenContent.innerHTML;
+
+  // Sync display and label
+  cinemaDisplay.textContent = vcrDisplay.textContent;
+  cinemaTapeLabel.textContent = currentTape ? currentTape.title.toUpperCase() : "";
+
+  // Sync tracking
+  const opacity = screen.style.getPropertyValue("--tracking-opacity");
+  const shift   = screen.style.getPropertyValue("--tracking-shift");
+  if (opacity) cinemaScreen.style.setProperty("--tracking-opacity", opacity);
+  if (shift)   cinemaScreen.style.setProperty("--tracking-shift", shift);
+
+  syncCinemaTransport();
+  syncCinemaSceneDots();
+}
+
+function syncCinemaTransport() {
+  if (!cinemaControls.play) return;
+  const modeToBtn = {
+    playing:   cinemaControls.play,
+    paused:    cinemaControls.pause,
+    rewinding: cinemaControls.rewind,
+    fast:      cinemaControls.fast
+  };
+  [cinemaControls.play, cinemaControls.pause, cinemaControls.rewind, cinemaControls.fast].forEach(btn => {
+    btn.classList.remove("transport-active");
+    btn.removeAttribute("aria-pressed");
+  });
+  const activeBtn = modeToBtn[mode];
+  if (activeBtn) {
+    activeBtn.classList.add("transport-active");
+    activeBtn.setAttribute("aria-pressed", "true");
+  }
+}
+
+function syncCinemaSceneDots() {
+  if (!cinemaSceneDots) return;
+  cinemaSceneDots.innerHTML = "";
+  if (!currentTape || currentTape.scenes.length <= 1) return;
+  currentTape.scenes.forEach((_, index) => {
+    const dot = makeDot(index);
+    cinemaSceneDots.appendChild(dot);
+  });
 }
 
 /* ─────────────────────────────────────────
@@ -1016,7 +1255,6 @@ function syncFullscreen() {
   fsVcrDisplay.textContent  = vcrDisplay.textContent;
   fsTapeLabel.textContent   = currentTape ? currentTape.title.toUpperCase() : "";
 
-  // Re-wire fullscreen dots since innerHTML was replaced
   renderSceneDots();
   syncFsTransportButtons();
 }
@@ -1043,8 +1281,9 @@ function syncFsTransportButtons() {
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
-    if (contactOpen)    { closeContact();    return; }
-    if (fsOpen)         { closeFullscreen(); return; }
+    if (contactOpen)  { closeContact();    return; }
+    if (fsOpen)       { closeFullscreen(); return; }
+    if (cinemaOpen)   { collapseCinema();  return; }
   }
   if ((e.key === "f" || e.key === "F") && !contactOpen) {
     if (!fsOpen && currentTape) openFullscreen();
@@ -1101,7 +1340,6 @@ contactSubmitBtn.addEventListener("click", () => {
     return;
   }
 
-  // Build mailto link as the submission mechanism (no server required)
   const name  = contactName.value.trim();
   const email = contactEmail.value.trim();
   const msg   = contactMsg.value.trim();
@@ -1113,7 +1351,6 @@ contactSubmitBtn.addEventListener("click", () => {
   contactStatus.className   = "contact-status";
   beep("play");
 
-  // Clear fields after a short delay
   setTimeout(() => {
     contactName.value  = "";
     contactEmail.value = "";
@@ -1132,8 +1369,6 @@ contactOverlay.addEventListener("click", (e) => {
 
 /* ─────────────────────────────────────────
    BLOG POST DATA
-   Each post: { id, title, eyebrow, sections[] }
-   Section types: "p", "h2", "h3", "ul", "code", "blockquote", "takeaway"
 ───────────────────────────────────────── */
 const blogPosts = {
   "pgvector": {
@@ -1178,7 +1413,7 @@ const blogPosts = {
       { type: "p", text: "The actual user message was often tiny — \"Anything good nearby that's still open?\" — but the model also needed the full operating manual. That operating manual was the obvious caching candidate." },
       { type: "h2", text: "Implementation" },
       { type: "p", text: "You mark the end of the stable prefix with cache_control. The API considers content in order: tools → system → messages. If your tools change between requests, everything below them in the cache is also invalidated — so tool definitions need to be stable in production." },
-      { type: "code", text: "const tools = [\n  { name: \"search_nearby_places\", ... },\n  {\n    name: \"get_user_memory\",\n    ...,\n    // Cache boundary: everything above this is stable\n    cache_control: { type: \"ephemeral\" },\n  },\n];\n\nconst response = await anthropic.messages.create({\n  model: process.env.CLAUDE_MODEL,\n  max_tokens: 800,\n  tools,\n  system: [{\n    type: \"text\",\n    text: NEARBY_VIBES_SYSTEM_PROMPT,\n    cache_control: { type: \"ephemeral\" },\n  }],\n  messages: [...],\n});\n\nconsole.log(response.usage);\n// { cache_creation_input_tokens, cache_read_input_tokens, ... }" },
+      { type: "code", text: "const tools = [\n  { name: \"search_nearby_places\", ... },\n  {\n    name: \"get_user_memory\",\n    ...,\n    cache_control: { type: \"ephemeral\" },\n  },\n];\n\nconst response = await anthropic.messages.create({\n  model: process.env.CLAUDE_MODEL,\n  max_tokens: 800,\n  tools,\n  system: [{\n    type: \"text\",\n    text: NEARBY_VIBES_SYSTEM_PROMPT,\n    cache_control: { type: \"ephemeral\" },\n  }],\n  messages: [...],\n});\n\nconsole.log(response.usage);\n// { cache_creation_input_tokens, cache_read_input_tokens, ... }" },
       { type: "h2", text: "The Gotchas" },
       { type: "ul", items: [
         "Minimum cache length. If the cacheable prefix is too short, it will not be cached even if you mark it.",
@@ -1305,14 +1540,12 @@ document.querySelectorAll(".fast-path-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
     const id = btn.dataset.tape;
 
-    // Contact button opens the form overlay instead of renting a tape
     if (id === "contact") {
       openContact();
       clerkLine.textContent = "Skipping the queue — leave your details.";
       return;
     }
 
-    // Rent tape and immediately start playing
     rentTape(id);
     setMode("playing");
     clerkLine.textContent = `Skipping the queue — playing ${tapes.find(t => t.id === id)?.title || id}.`;
@@ -1377,8 +1610,6 @@ function renderRewindRace() {
   injectRRStyles();
   startRRRound();
   document.querySelector("#rrStopBtn").addEventListener("click", onRRStop);
-
-  // Space bar triggers stop when game is active
   document.addEventListener("keydown", onGameKey);
 }
 
@@ -1581,7 +1812,6 @@ function updateClock() {
 
   storeTime.textContent = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-  // Store status based on actual time (9am–6pm = open, otherwise after hours)
   if (hours >= 9 && hours < 18) {
     storeStatus.textContent = "Open";
   } else if (hours >= 18 && hours < 21) {
@@ -1592,13 +1822,13 @@ function updateClock() {
 }
 
 /* ─────────────────────────────────────────
-   IDLE / LATE FEE — FIXED: charge once per idle window, not every second
+   IDLE / LATE FEE
 ───────────────────────────────────────── */
 function recordUserAction() {
   lastUserAction = Date.now();
 }
 
-let lateFeeCharged = false; // prevents repeat charges within same idle window
+let lateFeeCharged = false;
 
 function checkLateFee() {
   if (!currentTape) return;
@@ -1612,7 +1842,6 @@ function checkLateFee() {
     beep("error");
   }
 
-  // Reset the flag once the user takes action (checked via lastUserAction freshness)
   if (idleSeconds < 5) lateFeeCharged = false;
 }
 
