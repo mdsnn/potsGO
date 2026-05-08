@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sasa — Hear What's Happening</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+<style>
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --cream:     #F4EFE4;
+  --cream2:    #EDE7D9;
+  --parch:     #E5DCC8;
+  --ink:       #1A1208;
+  --ink2:      #2C2010;
+  --warm:      #6B5B45;
+  --rust:      #C94E1E;
+  --rust-dark: #A33A10;
+  --forest:    #2D6A4F;
+  --forest-dk: #1E4D38;
+  --amber:     #D4863A;
+  --mustard:   #C9A227;
+  --border:    rgba(26,18,8,0.12);
+  --border-md: rgba(26,18,8,0.18);
+  --display:   'Playfair Display', serif;
+  --body:      'DM Sans', sans-serif;
+  --ease-out:  cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--body);
+  background: var(--cream);
+  color: var(--ink);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+a { text-decoration: none; color: inherit; }
+button { font-family: var(--body); cursor: pointer; border: none; }
+
+/* ── HALFTONE ── */
+.hero-halftone, .section-halftone {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+}
+.hero-halftone::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(201,78,30,0.18) 1.5px, transparent 1.5px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 80% at 80% 50%, black 20%, transparent 70%);
+  mask-image: radial-gradient(ellipse 80% 80% at 80% 50%, black 20%, transparent 70%);
+}
+.section-halftone::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(45,106,79,0.15) 1.5px, transparent 1.5px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 60% 60% at 10% 90%, black 20%, transparent 70%);
+  mask-image: radial-gradient(ellipse 60% 60% at 10% 90%, black 20%, transparent 70%);
+}
+
+/* ── NOISE ── */
+.noise {
+  position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.065'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply; opacity: 0.55;
+}
+
+/* ── STAMP REVEAL ── */
+.stamp-wrap {
+  opacity: 0;
+  transform: translateY(22px) scale(0.98);
+  transition: opacity 0.55s var(--ease-out), transform 0.55s var(--ease-out);
+  transition-delay: var(--sd, 0ms);
+}
+.stamp-wrap--on { opacity: 1; transform: none; }
+
+/* ── DOT ── */
+.dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--rust); flex-shrink: 0; animation: risoP 1.6s ease infinite;
+}
+.dot--sm  { width: 5px; height: 5px; }
+.dot--cream { background: var(--cream); }
+@keyframes risoP { 0%,100%{opacity:1} 50%{opacity:0.28} }
+
+/* ── CURSOR ── */
+.cursor {
+  display: inline-block; width: 2px; height: 14px; background: var(--rust);
+  vertical-align: text-bottom; margin-left: 2px;
+  animation: risoB 1s step-end infinite;
+}
+@keyframes risoB { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--body); font-weight: 700; cursor: pointer;
+  border: none; white-space: nowrap;
+  transition: transform 0.12s var(--ease-out), box-shadow 0.12s var(--ease-out), background 0.15s;
+}
+.btn--pressed { transform: translate(3px,3px) !important; box-shadow: 1px 1px 0 !important; }
+
+.btn--primary {
+  background: var(--rust); color: #fff; padding: 11px 22px; font-size: 14px;
+  border: 2px solid var(--rust); box-shadow: 4px 4px 0 rgba(201,78,30,0.3);
+}
+.btn--primary:hover { background: var(--rust-dark); box-shadow: 5px 5px 0 rgba(201,78,30,0.4); transform: translate(-1px,-1px); }
+
+.btn--ghost { background: transparent; color: var(--warm); padding: 10px 16px; font-size: 14px; }
+.btn--ghost:hover { color: var(--ink); }
+
+.btn--nav-cta {
+  background: var(--forest); color: #fff; padding: 9px 18px; font-size: 13px;
+  border: 2px solid var(--forest); box-shadow: 3px 3px 0 rgba(45,106,79,0.25);
+}
+.btn--nav-cta:hover { background: var(--forest-dk); transform: translate(-1px,-1px); box-shadow: 4px 4px 0 rgba(45,106,79,0.35); }
+
+.btn--hero {
+  background: var(--rust); color: #fff; padding: 15px 30px; font-size: 16px;
+  border: 2px solid var(--rust); box-shadow: 5px 5px 0 rgba(201,78,30,0.3);
+}
+.btn--hero:hover { background: var(--rust-dark); transform: translate(-2px,-2px); box-shadow: 7px 7px 0 rgba(201,78,30,0.4); }
+
+.btn--hero-2 {
+  background: transparent; color: var(--ink); padding: 15px 30px; font-size: 16px;
+  border: 2px solid var(--ink); box-shadow: 5px 5px 0 rgba(26,18,8,0.15);
+}
+.btn--hero-2:hover { transform: translate(-2px,-2px); box-shadow: 7px 7px 0 rgba(26,18,8,0.22); background: rgba(26,18,8,0.03); }
+
+.btn--card {
+  width: 100%; justify-content: center; background: var(--rust); color: #fff;
+  padding: 11px; font-size: 13px; border: 2px solid var(--rust);
+  box-shadow: 3px 3px 0 rgba(201,78,30,0.28);
+}
+.btn--card:hover { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 rgba(201,78,30,0.38); }
+
+.btn--block { width: 100%; justify-content: center; padding: 13px; font-size: 14px; }
+.btn--outline-tier {
+  background: transparent; border: 2px solid var(--border-md); color: var(--ink);
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.08);
+}
+.btn--outline-tier:hover { border-color: rgba(26,18,8,0.3); transform: translate(-1px,-1px); box-shadow: 4px 4px 0 rgba(0,0,0,0.12); }
+
+.btn--cta-white {
+  background: #fff; color: var(--rust); padding: 15px 30px; font-size: 16px;
+  border: 2px solid #fff; box-shadow: 5px 5px 0 rgba(255,255,255,0.25);
+}
+.btn--cta-white:hover { background: var(--cream); transform: translate(-2px,-2px); box-shadow: 7px 7px 0 rgba(255,255,255,0.35); }
+
+.btn--cta-outline {
+  background: transparent; color: #fff; padding: 15px 30px; font-size: 16px;
+  border: 2px solid rgba(255,255,255,0.5); box-shadow: 5px 5px 0 rgba(255,255,255,0.1);
+}
+.btn--cta-outline:hover { border-color: #fff; background: rgba(255,255,255,0.08); transform: translate(-2px,-2px); }
+
+/* ── NAV ── */
+.s-nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: 60px; display: flex; align-items: center; padding: 0 48px;
+  transition: all 0.3s;
+}
+.s-nav--up {
+  background: rgba(244,239,228,0.97); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+.s-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--display); font-size: 20px; font-weight: 900;
+  color: var(--ink); letter-spacing: -0.01em; cursor: pointer;
+}
+.s-logo-mark { color: var(--rust); font-size: 18px; animation: risoP 2s infinite; }
+.s-logo-text  { font-family: var(--display); }
+.s-nav-links  { display: flex; gap: 28px; margin-left: 44px; }
+.s-nav-link   { font-size: 14px; color: var(--warm); font-weight: 500; transition: color 0.15s; }
+.s-nav-link:hover { color: var(--ink); }
+.s-nav-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+/* ── HERO ── */
+.s-hero {
+  min-height: 100vh; padding: 90px 0 0;
+  position: relative; overflow: hidden; background: var(--cream);
+}
+.s-hero-shape { position: absolute; pointer-events: none; }
+.s-hero-shape--1 { width: 640px; height: 640px; border-radius: 50%; background: rgba(201,78,30,0.07); top: -240px; right: -220px; }
+.s-hero-shape--2 { width: 420px; height: 420px; border-radius: 50%; background: rgba(45,106,79,0.06); bottom: -120px; left: -120px; }
+.s-hero-shape--3 { width: 280px; height: 280px; background: rgba(212,134,58,0.05); top: 220px; right: 120px; transform: rotate(15deg); }
+
+.s-hero-inner {
+  max-width: 1180px; margin: 0 auto; padding: 0 48px 80px;
+  display: flex; align-items: center; gap: 64px; position: relative; z-index: 2;
+}
+.s-hero-content { flex: 1; max-width: 580px; }
+
+.s-hero-stamp {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(201,78,30,0.08); border: 1.5px solid rgba(201,78,30,0.22);
+  color: var(--rust); padding: 6px 14px; font-size: 13px; font-weight: 600;
+  margin-bottom: 32px;
+  animation: fadeUp 0.6s 0.1s var(--ease-out) both;
+}
+.s-hero-h1 {
+  font-family: var(--display); font-weight: 900; line-height: 0.9;
+  letter-spacing: -0.025em; color: var(--ink); margin-bottom: 26px;
+}
+.s-h1-1 { display: block; font-size: clamp(52px,7vw,90px); animation: fadeUp 0.65s 0.15s var(--ease-out) both; }
+.s-h1-2 { display: block; font-size: clamp(66px,9vw,116px); font-style: italic; color: var(--rust); line-height: 0.85; animation: fadeUp 0.65s 0.25s var(--ease-out) both; }
+.s-h1-3 { display: block; font-size: clamp(52px,7vw,90px); animation: fadeUp 0.65s 0.35s var(--ease-out) both; }
+
+.s-hero-sub {
+  font-size: 17px; color: var(--warm); line-height: 1.76; max-width: 480px;
+  margin-bottom: 36px; animation: fadeUp 0.65s 0.45s var(--ease-out) both;
+}
+.s-hero-sub em { color: var(--rust); font-style: italic; font-weight: 600; }
+.s-hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 32px; animation: fadeUp 0.65s 0.55s var(--ease-out) both; }
+.s-hero-proof { display: flex; align-items: center; gap: 14px; animation: fadeUp 0.65s 0.65s var(--ease-out) both; }
+.s-avs { display: flex; }
+.s-av {
+  width: 30px; height: 30px; border-radius: 2px; margin-left: -8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: #fff;
+  border: 2px solid var(--cream); flex-shrink: 0;
+}
+.s-av:first-child { margin-left: 0; }
+.s-proof-txt { font-size: 13px; color: var(--warm); }
+
+/* ── HERO CARDS ── */
+.s-hero-cards {
+  position: relative; flex-shrink: 0; width: 360px; height: 460px;
+  animation: fadeIn 0.9s 0.4s var(--ease-out) both;
+}
+.s-card {
+  position: absolute; background: var(--cream); border: 2px solid var(--ink); padding: 20px;
+  transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
+  box-shadow: 5px 5px 0 rgba(26,18,8,0.14);
+}
+.s-card:hover { transform: translate(-3px,-3px); box-shadow: 8px 8px 0 rgba(26,18,8,0.18); }
+.s-card--main { width: 290px; bottom: 0; left: 0; }
+.s-card--sm { display: flex; align-items: center; gap: 12px; width: 230px; }
+.s-card--tl { top: 0; right: 0; }
+.s-card--br { top: 145px; right: -24px; }
+.s-card-tag { display: flex; align-items: center; gap: 6px; font-size: 9px; font-weight: 700; color: var(--rust); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px; }
+.s-card-title { font-family: var(--display); font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 4px; line-height: 1.25; }
+.s-card-meta { font-size: 11px; color: var(--warm); margin-bottom: 12px; }
+.s-wave { display: flex; align-items: center; gap: 2px; height: 24px; margin-bottom: 5px; }
+.s-wave-bar {
+  width: 3px; background: var(--rust); border-radius: 2px; opacity: 0.7;
+  animation: waveBar var(--d,0.8s) ease-in-out infinite alternate;
+}
+.s-wave-bar:nth-child(1){--d:.6s;height:40%} .s-wave-bar:nth-child(2){--d:.8s;height:70%}
+.s-wave-bar:nth-child(3){--d:.5s;height:55%} .s-wave-bar:nth-child(4){--d:.9s;height:100%}
+.s-wave-bar:nth-child(5){--d:.65s;height:80%} .s-wave-bar:nth-child(6){--d:.75s;height:60%}
+.s-wave-bar:nth-child(7){--d:.55s;height:90%} .s-wave-bar:nth-child(8){--d:.85s;height:50%}
+.s-wave-bar:nth-child(9){--d:.7s;height:75%} .s-wave-bar:nth-child(10){--d:.6s;height:40%}
+.s-wave-bar:nth-child(11){--d:.95s;height:85%} .s-wave-bar:nth-child(12){--d:.58s;height:55%}
+@keyframes waveBar { from{transform:scaleY(0.25)} to{transform:scaleY(1)} }
+.s-card-caption { font-size: 10px; color: var(--warm); margin-bottom: 14px; font-style: italic; }
+.s-card-ico { font-size: 22px; flex-shrink: 0; }
+.s-card-sm-t { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
+.s-card-sm-m { font-size: 11px; color: var(--warm); }
+.s-badge { margin-left: auto; padding: 4px 8px; color: #fff; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+.s-check { margin-left: auto; color: var(--forest); font-size: 18px; font-weight: 700; flex-shrink: 0; }
+.s-hero-deco {
+  position: absolute; bottom: 20px; right: -10px;
+  width: 72px; height: 72px; border-radius: 50%;
+  border: 2.5px solid var(--forest); color: var(--forest);
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  font-family: var(--display); font-size: 10px; font-weight: 900; line-height: 1.2; letter-spacing: 0.05em;
+  transform: rotate(-12deg);
+  animation: stampSpin 12s linear infinite;
+}
+@keyframes stampSpin { from{transform:rotate(-12deg)} to{transform:rotate(348deg)} }
+
+/* ── TICKER ── */
+.s-ticker {
+  display: flex; align-items: stretch; overflow: hidden;
+  border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink);
+  background: var(--cream2);
+}
+.s-ticker-label {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 22px; padding-right: 30px;
+  background: var(--rust); color: #fff;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  flex-shrink: 0; clip-path: polygon(0 0,100% 0,90% 100%,0 100%);
+}
+.s-ticker-wrap { overflow: hidden; flex: 1; }
+.s-ticker-track { display: flex; animation: ticker 32s linear infinite; width: max-content; }
+.s-ticker-track:hover { animation-play-state: paused; }
+.s-ticker-item {
+  display: flex; align-items: center; padding: 12px 26px;
+  border-right: 1px solid var(--border); font-size: 12px; color: var(--warm);
+  white-space: nowrap; font-weight: 500; gap: 8px;
+}
+.s-ticker-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── STATS ── */
+.s-stats {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  border-bottom: 2px solid var(--ink);
+}
+.s-stat {
+  padding: 44px 24px; text-align: center;
+  border-right: 2px solid var(--ink); transition: background 0.2s;
+}
+.s-stat:last-child { border-right: none; }
+.s-stat:hover { background: var(--cream2); }
+.s-stat-num { font-family: var(--display); font-size: clamp(32px,4vw,54px); font-weight: 900; line-height: 1; margin-bottom: 8px; }
+.s-stat-label { font-size: 12px; color: var(--warm); font-weight: 600; }
+
+/* ── SECTION BASE ── */
+.s-section { padding: 96px 0; background: var(--cream); position: relative; overflow: hidden; }
+.s-section--cream2 { background: var(--cream2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.s-section--forest { background: var(--forest); border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink); }
+.s-inner { max-width: 1180px; margin: 0 auto; padding: 0 48px; position: relative; z-index: 2; }
+
+.s-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--warm); margin-bottom: 14px; }
+.s-eyebrow--light { color: rgba(244,239,228,0.55); }
+.s-eyebrow--faint { color: rgba(255,255,255,0.5); }
+.s-section-title { font-family: var(--display); font-size: clamp(34px,5vw,60px); font-weight: 900; line-height: 0.95; letter-spacing: -0.025em; color: var(--ink); margin-bottom: 18px; }
+.s-section-title--light { color: var(--cream); }
+.s-em { font-style: italic; color: var(--rust); }
+.s-em--yellow { color: var(--mustard); }
+.s-section-sub { font-size: 16px; color: var(--warm); line-height: 1.72; max-width: 480px; margin-bottom: 52px; }
+
+/* ── SURFACES / FEATURES ── */
+.s-feat-grid {
+  display: grid; grid-template-columns: 240px 1fr;
+  border: 2px solid var(--ink); box-shadow: 7px 7px 0 rgba(26,18,8,0.1); overflow: hidden;
+}
+.s-feat-nav { display: flex; flex-direction: column; background: var(--cream2); }
+.s-feat-btn {
+  display: flex; align-items: center; gap: 12px; padding: 15px 18px;
+  border: none; background: transparent; cursor: pointer;
+  border-bottom: 1px solid var(--border); color: var(--warm);
+  font-family: var(--body); font-size: 14px; font-weight: 600;
+  text-align: left; transition: all 0.18s; position: relative;
+}
+.s-feat-btn:last-child { border-bottom: none; }
+.s-feat-btn::before {
+  content:''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: var(--fc, var(--rust)); transform: scaleY(0); transition: transform 0.2s var(--ease-out);
+}
+.s-feat-btn:hover,
+.s-feat-btn--on { color: var(--ink); background: rgba(26,18,8,0.04); }
+.s-feat-btn--on::before { transform: scaleY(1); }
+.s-feat-num { font-size: 10px; color: rgba(26,18,8,0.2); flex-shrink: 0; }
+.s-feat-ico { font-size: 16px; flex-shrink: 0; }
+.s-feat-lbl { flex: 1; }
+.s-feat-arr { margin-left: auto; opacity: 0; transition: all 0.18s; font-size: 12px; }
+.s-feat-btn:hover .s-feat-arr,
+.s-feat-btn--on .s-feat-arr { opacity: 1; transform: translateX(3px); }
+.s-feat-panel {
+  background: var(--cream); position: relative; min-height: 420px;
+  border-left: 2px solid var(--ink);
+}
+.s-feat-detail {
+  position: absolute; inset: 0; padding: 44px;
+  opacity: 0; transform: translateY(10px);
+  transition: opacity 0.28s, transform 0.28s var(--ease-out);
+  pointer-events: none;
+}
+.s-feat-detail--on { opacity: 1; transform: none; pointer-events: auto; }
+.s-feat-d-chip {
+  display: inline-block; padding: 4px 10px; color: #fff;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 18px;
+}
+.s-feat-d-icon  { font-size: 44px; margin-bottom: 14px; }
+.s-feat-d-title { font-family: var(--display); font-size: 34px; font-weight: 900; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 14px; line-height: 1.05; }
+.s-feat-d-desc  { font-size: 15px; color: var(--warm); line-height: 1.75; max-width: 440px; margin-bottom: 18px; }
+.s-feat-d-divider { width: 40px; height: 3px; background: var(--fc, var(--rust)); margin-bottom: 22px; }
+.s-feat-d-bg {
+  position: absolute; right: -20px; bottom: -40px;
+  font-family: var(--display); font-size: 160px; font-weight: 900; font-style: italic;
+  color: var(--ink); opacity: 0.028; pointer-events: none; line-height: 1; user-select: none;
+}
+.btn--feat {
+  background: var(--fc, var(--rust)); color: #fff; padding: 11px 22px; font-size: 13px;
+  border: 2px solid var(--fc, var(--rust)); box-shadow: 4px 4px 0 rgba(0,0,0,0.14);
+  display: inline-flex; align-items: center; gap: 8px; font-family: var(--body); font-weight: 700; cursor: pointer;
+  transition: transform 0.12s var(--ease-out), box-shadow 0.12s var(--ease-out), filter 0.15s;
+}
+.btn--feat:hover { filter: brightness(0.92); transform: translate(-1px,-1px); box-shadow: 5px 5px 0 rgba(0,0,0,0.2); }
+
+/* ── HOSTS (How It Works) ── */
+.s-how-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: start; }
+.s-steps { display: flex; flex-direction: column; }
+.s-step { display: flex; gap: 18px; padding: 24px 0; border-bottom: 1px solid rgba(244,239,228,0.12); }
+.s-step:last-child { border-bottom: none; }
+.s-step-num {
+  width: 42px; height: 42px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--display); font-size: 16px; font-weight: 900;
+  transition: all 0.2s var(--ease-out); box-shadow: 3px 3px 0 rgba(0,0,0,0.2);
+}
+.s-step:hover .s-step-num { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 rgba(0,0,0,0.28); }
+.s-step-title { font-family: var(--display); font-size: 18px; font-weight: 700; color: var(--cream); margin-bottom: 8px; }
+.s-step-desc { font-size: 14px; color: rgba(244,239,228,0.62); line-height: 1.65; }
+
+/* ── DEMO ── */
+.s-demo-wrap { position: sticky; top: 80px; }
+.s-demo {
+  background: var(--cream); border: 2px solid var(--ink);
+  box-shadow: 8px 8px 0 rgba(26,18,8,0.22); overflow: hidden;
+}
+.s-demo-header {
+  padding: 12px 18px; background: var(--cream2);
+  border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px;
+}
+.s-demo-dots { display: flex; gap: 6px; }
+.s-demo-dots span { width: 10px; height: 10px; border-radius: 50%; }
+.s-demo-dots span:nth-child(1){background:#ff5f56}
+.s-demo-dots span:nth-child(2){background:#ffbd2e}
+.s-demo-dots span:nth-child(3){background:#27c93f}
+.s-demo-title  { font-size: 12px; color: var(--warm); flex: 1; text-align: center; font-weight: 600; }
+.s-demo-status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--forest); font-weight: 700; }
+.s-demo-body   { padding: 22px; display: flex; flex-direction: column; gap: 14px; min-height: 320px; }
+.s-msg { display: flex; gap: 10px; align-items: flex-start; }
+.s-msg--user   { flex-direction: row-reverse; }
+.s-msg-av {
+  width: 30px; height: 30px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; border: 1.5px solid var(--ink);
+}
+.s-msg-av--host { background: var(--rust); color: #fff; }
+.s-msg-av--user { background: var(--cream2); color: var(--ink); }
+.s-msg-bubble {
+  max-width: 82%; padding: 10px 14px; font-size: 14px; line-height: 1.55;
+  border: 1.5px solid var(--border);
+}
+.s-msg--agent .s-msg-bubble { background: var(--cream2); color: var(--warm); }
+.s-msg--user  .s-msg-bubble { background: var(--rust); color: #fff; border-color: var(--rust); }
+.s-demo-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.s-demo-action {
+  padding: 7px 12px; border: 1.5px solid rgba(201,78,30,0.3); background: transparent;
+  color: var(--rust); font-family: var(--body); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+}
+.s-demo-action:hover { background: rgba(201,78,30,0.06); border-color: var(--rust); }
+
+/* ── HOST CARDS ── */
+.s-hosts { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin-bottom: 28px; }
+.s-host {
+  border: 2px solid var(--ink); background: var(--cream);
+  box-shadow: 5px 5px 0 rgba(26,18,8,0.1);
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+  overflow: hidden; padding: 28px;
+}
+.s-host:hover { transform: translate(-3px,-3px); box-shadow: 8px 8px 0 rgba(26,18,8,0.15); }
+.s-host--primary { border-color: var(--rust); box-shadow: 5px 5px 0 rgba(201,78,30,0.22); }
+.s-host-badge { background: var(--rust); color: #fff; display: inline-block; padding: 3px 9px; font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 14px; }
+.s-host-av {
+  width: 48px; height: 48px; border: 2px solid var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--display); font-size: 18px; font-style: italic;
+  font-weight: 700; color: #fff; margin-bottom: 14px;
+}
+.s-host-name { font-family: var(--display); font-size: 22px; font-weight: 900; font-style: italic; color: var(--ink); margin-bottom: 4px; }
+.s-host-role { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--warm); margin-bottom: 12px; }
+.s-host-desc { font-size: 14px; color: var(--warm); line-height: 1.65; }
+.s-host-pct  { font-size: 10px; font-weight: 700; color: var(--rust); margin-top: 14px; }
+
+/* Banter box */
+.s-banter {
+  border: 2px solid var(--ink); background: var(--cream2);
+  box-shadow: 5px 5px 0 rgba(26,18,8,0.1); padding: 28px 32px;
+}
+.s-banter-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--warm); margin-bottom: 18px; }
+.s-banter-lines { display: flex; flex-direction: column; gap: 12px; }
+.s-banter-line  { display: flex; gap: 12px; align-items: flex-start; }
+.s-banter-av {
+  width: 28px; height: 28px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--display); font-size: 11px; font-style: italic;
+  font-weight: 700; color: #fff; border: 1.5px solid var(--ink);
+}
+.s-banter-bubble {
+  padding: 9px 14px; border: 1.5px solid var(--border);
+  font-size: 14px; line-height: 1.5; color: var(--warm);
+  background: var(--cream); max-width: 80%;
+}
+
+/* ── TIERS ── */
+.s-tiers { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 22px; }
+.s-tier {
+  border: 2px solid var(--ink); background: var(--cream); overflow: hidden;
+  display: flex; flex-direction: column;
+  box-shadow: 5px 5px 0 rgba(26,18,8,0.1);
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+}
+.s-tier:hover { transform: translate(-3px,-3px); box-shadow: 8px 8px 0 rgba(26,18,8,0.15); }
+.s-tier--hot  { border-color: var(--rust); box-shadow: 5px 5px 0 rgba(201,78,30,0.22); }
+.s-tier-badge { background: var(--rust); color: #fff; text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; padding: 7px; text-transform: uppercase; }
+.s-tier-top   { padding: 26px 24px 20px; }
+.s-tier-name  { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--warm); margin-bottom: 14px; }
+.s-tier-price { font-family: var(--display); font-size: 50px; font-weight: 900; color: var(--ink); line-height: 1; margin-bottom: 6px; letter-spacing: -0.02em; }
+.s-tier-period { font-size: 16px; font-weight: 500; color: var(--warm); }
+.s-tier-tagline { font-size: 14px; color: var(--warm); margin-top: 10px; }
+.s-tier-div   { height: 1px; background: var(--border); }
+.s-tier-features { padding: 20px 24px; display: flex; flex-direction: column; gap: 11px; flex: 1; }
+.s-tier-feat  { display: flex; gap: 10px; font-size: 14px; color: var(--warm); line-height: 1.4; }
+.s-tier-check { color: var(--forest); flex-shrink: 0; font-weight: 700; }
+.s-tier .btn--block { margin: 0 18px 18px; width: calc(100% - 36px); }
+.s-pricing-note { text-align: center; font-size: 12px; color: var(--warm); }
+
+/* ── TESTIMONIALS ── */
+.s-testimonials { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+.s-testi {
+  border: 2px solid var(--ink); background: var(--cream);
+  box-shadow: 5px 5px 0 rgba(26,18,8,0.08);
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+  overflow: hidden;
+}
+.s-testi:hover { transform: translate(-3px,-3px); box-shadow: 8px 8px 0 rgba(26,18,8,0.12); }
+.s-testi-accent { height: 5px; }
+.s-testi-mark   { font-family: var(--display); font-size: 52px; font-style: italic; color: var(--rust); opacity: 0.45; line-height: 1; padding: 20px 24px 0; }
+.s-testi-text   { font-size: 15px; color: var(--warm); line-height: 1.76; margin-bottom: 22px; padding: 0 24px; }
+.s-testi-author { display: flex; align-items: center; gap: 12px; padding: 16px 24px; border-top: 1px solid var(--border); background: var(--cream2); }
+.s-testi-av     { width: 38px; height: 38px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 16px; font-weight: 900; color: #fff; border: 1.5px solid var(--ink); }
+.s-testi-name   { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
+.s-testi-role   { font-size: 11px; color: var(--warm); }
+
+/* ── CTA ── */
+.s-cta {
+  padding: 112px 48px; text-align: center;
+  position: relative; overflow: hidden;
+  background: var(--rust); border-top: 2px solid var(--ink);
+}
+.s-cta-shape-1 { position: absolute; width: 560px; height: 560px; border-radius: 50%; background: rgba(255,255,255,0.055); top: -220px; right: -120px; pointer-events: none; }
+.s-cta-shape-2 { position: absolute; width: 320px; height: 320px; border-radius: 50%; background: rgba(0,0,0,0.055); bottom: -100px; left: -60px; pointer-events: none; }
+.s-cta-inner   { position: relative; z-index: 2; }
+.s-cta-title   { font-family: var(--display); font-size: clamp(40px,6.5vw,76px); font-weight: 900; letter-spacing: -0.025em; line-height: 0.93; color: #fff; margin-bottom: 22px; }
+.s-cta-sub     { font-size: 17px; color: rgba(255,255,255,0.72); max-width: 400px; margin: 0 auto 36px; line-height: 1.72; }
+.s-cta-btns    { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; margin-bottom: 28px; }
+.s-cta-trust   { display: flex; align-items: center; justify-content: center; gap: 28px; font-size: 13px; color: rgba(255,255,255,0.55); font-weight: 600; }
+
+/* ── FOOTER ── */
+.s-footer     { border-top: 2px solid var(--ink); background: var(--ink); }
+.s-footer-top { display: grid; grid-template-columns: 1.8fr 1fr 1fr 1fr; gap: 48px; padding: 64px 48px; }
+.s-footer-logo { font-family: var(--display); font-size: 22px; font-weight: 900; color: var(--cream); display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.s-footer-desc { font-size: 14px; color: rgba(244,239,228,0.45); line-height: 1.7; max-width: 280px; margin-bottom: 20px; }
+.s-footer-socials { display: flex; gap: 18px; }
+.s-footer-soc   { font-size: 13px; color: rgba(244,239,228,0.38); transition: color 0.15s; font-weight: 500; }
+.s-footer-soc:hover { color: var(--cream); }
+.s-footer-col-title { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(244,239,228,0.35); margin-bottom: 18px; }
+.s-footer-link { display: block; font-size: 14px; color: rgba(244,239,228,0.48); margin-bottom: 10px; transition: color 0.15s; }
+.s-footer-link:hover { color: var(--cream); }
+.s-footer-bottom { padding: 20px 48px; border-top: 1px solid rgba(244,239,228,0.07); display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: rgba(244,239,228,0.28); }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp  { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:none} }
+@keyframes fadeIn  { from{opacity:0} to{opacity:1} }
+@keyframes ticker  { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+/* ── RESPONSIVE ── */
+@media(max-width:1100px) {
+  .s-hero-inner       { flex-direction: column; padding: 0 24px 60px; }
+  .s-hero-cards       { display: none; }
+  .s-tiers            { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto 22px; }
+  .s-testimonials     { grid-template-columns: 1fr; }
+  .s-how-grid         { grid-template-columns: 1fr; }
+  .s-demo-wrap        { position: static; }
+  .s-stats            { grid-template-columns: repeat(2,1fr); }
+  .s-hosts            { grid-template-columns: 1fr; }
+  .s-feat-grid        { grid-template-columns: 1fr; }
+  .s-feat-nav         { flex-direction: row; overflow-x: auto; }
+  .s-feat-btn         { flex-direction: column; gap: 4px; min-width: 76px; padding: 12px; text-align: center; }
+  .s-feat-arr, .s-feat-num { display: none; }
+  .s-feat-detail      { position: relative; opacity: 0; height: 0; overflow: hidden; padding: 0; }
+  .s-feat-detail--on  { opacity: 1; height: auto; padding: 30px; }
+  .s-footer-top       { grid-template-columns: 1fr 1fr; gap: 28px; }
+}
+@media(max-width:768px) {
+  .s-nav              { padding: 0 20px; }
+  .s-nav-links        { display: none; }
+  .s-inner            { padding: 0 20px; }
+  .s-section          { padding: 64px 0; }
+  .s-cta              { padding: 72px 20px; }
+  .s-footer-top       { grid-template-columns: 1fr; padding: 36px 20px; }
+  .s-footer-bottom    { padding: 16px 20px; flex-direction: column; gap: 8px; text-align: center; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav class="s-nav" id="nav">
+  <div class="s-logo">
+    <span class="s-logo-mark">◉</span>
+    <span class="s-logo-text">Sasa</span>
+  </div>
+  <div class="s-nav-links">
+    <a href="#surfaces" class="s-nav-link">Product</a>
+    <a href="#hosts"    class="s-nav-link">Hosts</a>
+    <a href="#how"      class="s-nav-link">How it works</a>
+    <a href="#pricing"  class="s-nav-link">Pricing</a>
+  </div>
+  <div class="s-nav-actions">
+    <button class="btn btn--ghost">Sign In</button>
+    <button class="btn btn--nav-cta">Listen Now</button>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="s-hero">
+  <div class="hero-halftone"></div>
+  <div class="s-hero-shape s-hero-shape--1"></div>
+  <div class="s-hero-shape s-hero-shape--2"></div>
+  <div class="s-hero-shape s-hero-shape--3"></div>
+  <div class="noise"></div>
+
+  <div class="s-hero-inner">
+    <div class="s-hero-content">
+      <div class="s-hero-stamp">
+        <span class="dot dot--sm"></span>
+        On air now · Live in your city
+      </div>
+
+      <h1 class="s-hero-h1">
+        <span class="s-h1-1">Hear what's</span>
+        <span class="s-h1-2">happening.</span>
+        <span class="s-h1-3">Right now.</span>
+      </h1>
+
+      <p class="s-hero-sub">
+        Sasa is the <em>live local radio show for your city</em> — powered by AI hosts, real local voices,
+        and hyper-local signals. Discover what's on, decide faster, and act without leaving the app.
+      </p>
+
+      <div class="s-hero-ctas">
+        <button class="btn btn--hero">▶ Start Listening — It's Free</button>
+        <button class="btn btn--hero-2">List Your Venue</button>
+      </div>
+
+      <div class="s-hero-proof">
+        <div class="s-avs">
+          <div class="s-av" style="background:#C94E1E;">BM</div>
+          <div class="s-av" style="background:#2D6A4F;">TN</div>
+          <div class="s-av" style="background:#D4863A;">CM</div>
+          <div class="s-av" style="background:#C94E1E;">MK</div>
+          <div class="s-av" style="background:#2D6A4F;">PZ</div>
+        </div>
+        <span class="s-proof-txt"><strong>2,400+</strong> people listening right now</span>
+      </div>
+    </div>
+
+    <!-- Hero card cluster -->
+    <div class="s-hero-cards">
+      <!-- Main card: radio player -->
+      <div class="s-card s-card--main">
+        <div class="s-card-tag"><span class="dot dot--sm"></span>ON AIR · NIA HOSTING</div>
+        <div class="s-card-title">"Kofi's just dropped a dinner combo — gone in 40."</div>
+        <div class="s-card-meta">Evening show · 2 blocks away · Live now</div>
+        <div class="s-wave">
+          <div class="s-wave-bar"></div><div class="s-wave-bar"></div>
+          <div class="s-wave-bar"></div><div class="s-wave-bar"></div>
+          <div class="s-wave-bar"></div><div class="s-wave-bar"></div>
+          <div class="s-wave-bar"></div><div class="s-wave-bar"></div>
+          <div class="s-wave-bar"></div><div class="s-wave-bar"></div>
+          <div class="s-wave-bar"></div><div class="s-wave-bar"></div>
+        </div>
+        <div class="s-card-caption">Tap to listen · Sasa Live</div>
+        <button class="btn btn--card">▶ Tune In →</button>
+      </div>
+      <!-- Top-right: event -->
+      <div class="s-card s-card--sm s-card--tl">
+        <span class="s-card-ico">🎉</span>
+        <div>
+          <div class="s-card-sm-t">Rooftop Jazz · 8pm</div>
+          <div class="s-card-sm-m">Social event · 14 joining</div>
+        </div>
+        <div class="s-badge" style="background:#2D6A4F;">RSVP</div>
+      </div>
+      <!-- Mid-right: agent -->
+      <div class="s-card s-card--sm s-card--br">
+        <span class="s-card-ico">🤖</span>
+        <div>
+          <div class="s-card-sm-t">Agent sorted</div>
+          <div class="s-card-sm-m">Dinner + drinks · Tonight ✓</div>
+        </div>
+        <div class="s-check">✓</div>
+      </div>
+      <div class="s-hero-deco">HEAR<br />LOCAL</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TICKER ── -->
+<div class="s-ticker">
+  <div class="s-ticker-label"><span class="dot dot--sm dot--cream"></span>Live</div>
+  <div class="s-ticker-wrap">
+    <div class="s-ticker-track">
+      <span class="s-ticker-item"><span class="s-ticker-dot" style="background:#C94E1E;"></span>12 social events happening near you tonight</span>
+      <span class="s-ticker-item"><span class="s-ticker-dot" style="background:#2D6A4F;"></span>Mama's Kitchen now live on Sasa · Lusaka CBD</span>
+      <span class="s-ticker-item"><span class="s-ticker-dot" style="background:#C94E1E;"></span>Rooftop jazz at Banda's — 47 people joining</span>
+      <span class="s-ticker-item"><span class="s-ticker-dot" style="background:#2D6A4F;"></span>Flash deal: craft beers at City Bottle · ends 8pm</span>
+      <span class="s-ticker-item"><span class="s-ticker-dot" style="background:#C94E1E;"></span>Nia on air: "Tonight's dinner scene is moving fast"</span>
+      <span class="s-ticker-item"><span class="s-ticker-dot" style="background:#2D6A4F;"></span>Group supper club forming · 5 spots left · Join now</span>
+      <!-- duplicate for loop -->
+      <span class="s-ticker-item"><span class="s-ticker-dot" style="background:#C94E1E;"></span>12 social events happening near you tonight</span>
+      <span class="s-ticker-item"><span class="s-ticker-dot" style="background:#2D6A4F;"></span>Mama's Kitchen now live on Sasa · Lusaka CBD</span>
+      <span class="s-ticker-item"><span class="s-ticker-dot" style="background:#C94E1E;"></span>Rooftop jazz at Banda's — 47 people joining</span>
+      <span class="s-ticker-item"><span class="s-ticker-dot" style="background:#2D6A4F;"></span>Flash deal: craft beers at City Bottle · ends 8pm</span>
+      <span class="s-ticker-item"><span class="s-ticker-dot" style="background:#C94E1E;"></span>Nia on air: "Tonight's dinner scene is moving fast"</span>
+      <span class="s-ticker-item"><span class="s-ticker-dot" style="background:#2D6A4F;"></span>Group supper club forming · 5 spots left · Join now</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── STATS ── -->
+<div class="s-stats">
+  <div class="stamp-wrap" style="--sd:0ms">
+    <div class="s-stat"><div class="s-stat-num" style="color:#C94E1E;">2,400+</div><div class="s-stat-label">Active listeners</div></div>
+  </div>
+  <div class="stamp-wrap" style="--sd:80ms">
+    <div class="s-stat"><div class="s-stat-num" style="color:#2D6A4F;">340+</div><div class="s-stat-label">Venues live</div></div>
+  </div>
+  <div class="stamp-wrap" style="--sd:160ms">
+    <div class="s-stat"><div class="s-stat-num" style="color:#C94E1E;">1,200+</div><div class="s-stat-label">Events broadcast</div></div>
+  </div>
+  <div class="stamp-wrap" style="--sd:240ms">
+    <div class="s-stat"><div class="s-stat-num" style="color:#2D6A4F;">$2.8M+</div><div class="s-stat-label">In transactions</div></div>
+  </div>
+</div>
+
+<!-- ── SURFACES ── -->
+<section class="s-section" id="surfaces">
+  <div class="section-halftone"></div>
+  <div class="s-inner">
+    <div class="stamp-wrap"><div class="s-eyebrow">What's inside</div></div>
+    <div class="stamp-wrap" style="--sd:60ms">
+      <h2 class="s-section-title">Six surfaces.<br><em class="s-em">One city.</em></h2>
+    </div>
+    <div class="stamp-wrap" style="--sd:120ms">
+      <p class="s-section-sub">Every feature connects to the others. The live audio show ties them all together.</p>
+    </div>
+    <div class="stamp-wrap" style="--sd:180ms">
+      <div class="s-feat-grid" id="featGrid">
+        <div class="s-feat-nav">
+          <button class="s-feat-btn s-feat-btn--on" data-feat="0" style="--fc:#C94E1E;">
+            <span class="s-feat-num">01</span><span class="s-feat-ico">📡</span>
+            <span class="s-feat-lbl">Sasa Live</span><span class="s-feat-arr">→</span>
+          </button>
+          <button class="s-feat-btn" data-feat="1" style="--fc:#2D6A4F;">
+            <span class="s-feat-num">02</span><span class="s-feat-ico">🤖</span>
+            <span class="s-feat-lbl">Agent</span><span class="s-feat-arr">→</span>
+          </button>
+          <button class="s-feat-btn" data-feat="2" style="--fc:#C94E1E;">
+            <span class="s-feat-num">03</span><span class="s-feat-ico">🗺️</span>
+            <span class="s-feat-lbl">Live Map</span><span class="s-feat-arr">→</span>
+          </button>
+          <button class="s-feat-btn" data-feat="3" style="--fc:#2D6A4F;">
+            <span class="s-feat-num">04</span><span class="s-feat-ico">💬</span>
+            <span class="s-feat-lbl">Chats</span><span class="s-feat-arr">→</span>
+          </button>
+          <button class="s-feat-btn" data-feat="4" style="--fc:#C94E1E;">
+            <span class="s-feat-num">05</span><span class="s-feat-ico">🛍️</span>
+            <span class="s-feat-lbl">Commerce</span><span class="s-feat-arr">→</span>
+          </button>
+          <button class="s-feat-btn" data-feat="5" style="--fc:#2D6A4F;">
+            <span class="s-feat-num">06</span><span class="s-feat-ico">📊</span>
+            <span class="s-feat-lbl">Vendors</span><span class="s-feat-arr">→</span>
+          </button>
+        </div>
+        <div class="s-feat-panel">
+          <div class="s-feat-detail s-feat-detail--on" style="--fc:#C94E1E;">
+            <div class="s-feat-d-chip" style="background:#C94E1E;">01 — Sasa Live</div>
+            <div class="s-feat-d-icon">📡</div>
+            <h3 class="s-feat-d-title">Your city, on air.</h3>
+            <p class="s-feat-d-desc">A live, adaptive audio show assembled from nearby signals — events, deals, food stores, friend activity. AI hosts mix it in real time so it always sounds like now, not a list.</p>
+            <div class="s-feat-d-divider"></div>
+            <button class="btn--feat">Tune In →</button>
+            <div class="s-feat-d-bg">01</div>
+          </div>
+          <div class="s-feat-detail" style="--fc:#2D6A4F;">
+            <div class="s-feat-d-chip" style="background:#2D6A4F;">02 — Agent</div>
+            <div class="s-feat-d-icon">🤖</div>
+            <h3 class="s-feat-d-title">Ask anything. Get it done.</h3>
+            <p class="s-feat-d-desc">"What should I do after work tonight?" The agent scans nearby signals, builds a plan, orders food, sends RSVPs — all inside one conversation. You just pitch up.</p>
+            <div class="s-feat-d-divider"></div>
+            <button class="btn--feat">Try the Agent →</button>
+            <div class="s-feat-d-bg">02</div>
+          </div>
+          <div class="s-feat-detail" style="--fc:#C94E1E;">
+            <div class="s-feat-d-chip" style="background:#C94E1E;">03 — Live Map</div>
+            <div class="s-feat-d-icon">🗺️</div>
+            <h3 class="s-feat-d-title">See what's open. Right now.</h3>
+            <p class="s-feat-d-desc">Every event, venue, and food store plotted in real time. Semantic search finds what you mean, not just what you type. Move with confidence, not guesswork.</p>
+            <div class="s-feat-d-divider"></div>
+            <button class="btn--feat">Open the Map →</button>
+            <div class="s-feat-d-bg">03</div>
+          </div>
+          <div class="s-feat-detail" style="--fc:#2D6A4F;">
+            <div class="s-feat-d-chip" style="background:#2D6A4F;">04 — Chats</div>
+            <div class="s-feat-d-icon">💬</div>
+            <h3 class="s-feat-d-title">Temporary. Social. Alive.</h3>
+            <p class="s-feat-d-desc">Event chats, vendor threads, plan groups — all temporary. They expire when the moment passes. No noise that lingers. Just the conversation that mattered, when it mattered.</p>
+            <div class="s-feat-d-divider"></div>
+            <button class="btn--feat">Explore Community →</button>
+            <div class="s-feat-d-bg">04</div>
+          </div>
+          <div class="s-feat-detail" style="--fc:#C94E1E;">
+            <div class="s-feat-d-chip" style="background:#C94E1E;">05 — Commerce</div>
+            <div class="s-feat-d-icon">🛍️</div>
+            <h3 class="s-feat-d-title">Buy without leaving the show.</h3>
+            <p class="s-feat-d-desc">Tickets, food orders, flash deals — all inside the app. Independent vendors get direct access to nearby buyers. No middlemen, no markups, no redirects.</p>
+            <div class="s-feat-d-divider"></div>
+            <button class="btn--feat">Browse Deals →</button>
+            <div class="s-feat-d-bg">05</div>
+          </div>
+          <div class="s-feat-detail" style="--fc:#2D6A4F;">
+            <div class="s-feat-d-chip" style="background:#2D6A4F;">06 — Vendors</div>
+            <div class="s-feat-d-icon">📊</div>
+            <h3 class="s-feat-d-title">Push signals. Get heard.</h3>
+            <p class="s-feat-d-desc">Push deals and events directly to nearby listeners on air. Manage live orders, track conversions, and see exactly who's tuning in to your signals.</p>
+            <div class="s-feat-d-divider"></div>
+            <button class="btn--feat">List Your Venue →</button>
+            <div class="s-feat-d-bg">06</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOSTS ── -->
+<section class="s-section s-section--cream2" id="hosts">
+  <div class="s-inner">
+    <div class="stamp-wrap"><div class="s-eyebrow">The cast</div></div>
+    <div class="stamp-wrap" style="--sd:60ms">
+      <h2 class="s-section-title">Meet your<br><em class="s-em">hosts.</em></h2>
+    </div>
+    <div class="stamp-wrap" style="--sd:120ms">
+      <p class="s-section-sub">Not one assistant — a small cast of AI personalities. Real chemistry, distinct roles, live energy.</p>
+    </div>
+
+    <div class="s-hosts">
+      <div class="stamp-wrap" style="--sd:0ms">
+        <div class="s-host s-host--primary">
+          <div class="s-host-badge">Primary · 80%</div>
+          <div class="s-host-av" style="background:#C94E1E;">N</div>
+          <div class="s-host-name">Nia</div>
+          <div class="s-host-role">Anchor</div>
+          <div class="s-host-desc">Warm, observant, guiding. Nia drives the show's flow — she knows when to slow down and when to push. She makes decisions feel natural, not pressured.</div>
+          <div class="s-host-pct">~80% of air time</div>
+        </div>
+      </div>
+      <div class="stamp-wrap" style="--sd:80ms">
+        <div class="s-host">
+          <div class="s-host-av" style="background:#2D6A4F;">K</div>
+          <div class="s-host-name">Kairo</div>
+          <div class="s-host-role">Disruptor</div>
+          <div class="s-host-desc">Energetic, reactive, urgent. Kairo jumps in when the vibe needs a jolt — the one who makes you feel like you're about to miss something good.</div>
+          <div class="s-host-pct">~10% of air time</div>
+        </div>
+      </div>
+      <div class="stamp-wrap" style="--sd:160ms">
+        <div class="s-host">
+          <div class="s-host-av" style="background:#D4863A;">S</div>
+          <div class="s-host-name">Sol</div>
+          <div class="s-host-role">Atmosphere</div>
+          <div class="s-host-desc">Smooth, minimal, mood-first. Sol doesn't push — he colors the space between segments. Vibe over information, always.</div>
+          <div class="s-host-pct">~10% of air time</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stamp-wrap" style="--sd:200ms">
+      <div class="s-banter">
+        <div class="s-banter-label">Live banter · Example segment</div>
+        <div class="s-banter-lines">
+          <div class="s-banter-line">
+            <div class="s-banter-av" style="background:#C94E1E;">N</div>
+            <div class="s-banter-bubble">"Kofi's just dropped a dinner combo for tonight — 40 minutes, then it's gone."</div>
+          </div>
+          <div class="s-banter-line">
+            <div class="s-banter-av" style="background:#2D6A4F;">K</div>
+            <div class="s-banter-bubble">"Forty minutes? That's pressure."</div>
+          </div>
+          <div class="s-banter-line">
+            <div class="s-banter-av" style="background:#C94E1E;">N</div>
+            <div class="s-banter-bubble">"Only if you're slow. Link's in the feed."</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ── -->
+<section class="s-section s-section--forest" id="how">
+  <div class="s-inner">
+    <div class="stamp-wrap"><div class="s-eyebrow s-eyebrow--light">How it works</div></div>
+    <div class="stamp-wrap" style="--sd:60ms">
+      <h2 class="s-section-title s-section-title--light">Ask. <em class="s-em s-em--yellow">Discover.</em> Go.</h2>
+    </div>
+    <div class="s-how-grid">
+      <div class="s-steps">
+        <div class="stamp-wrap" style="--sd:0ms">
+          <div class="s-step">
+            <div class="s-step-num" style="background:#C94E1E;color:#fff;">01</div>
+            <div>
+              <div class="s-step-title">The show reads your city</div>
+              <div class="s-step-desc">Every signal nearby — events, deals, new venues, friend activity — feeds into the live show. Sasa knows what's happening before you ask.</div>
+            </div>
+          </div>
+        </div>
+        <div class="stamp-wrap" style="--sd:80ms">
+          <div class="s-step">
+            <div class="s-step-num" style="background:#F4EFE4;color:#1A1208;">02</div>
+            <div>
+              <div class="s-step-title">Nia turns it into a show</div>
+              <div class="s-step-desc">The AI hosts assemble segments, ordered by urgency and relevance, and deliver a flowing audio experience — not a list, not a feed.</div>
+            </div>
+          </div>
+        </div>
+        <div class="stamp-wrap" style="--sd:160ms">
+          <div class="s-step">
+            <div class="s-step-num" style="background:#C94E1E;color:#fff;">03</div>
+            <div>
+              <div class="s-step-title">You act without switching apps</div>
+              <div class="s-step-desc">RSVP, order food, join a group chat, ask the agent to plan the night — all inline. The show keeps playing while you do it.</div>
+            </div>
+          </div>
+        </div>
+        <div class="stamp-wrap" style="--sd:240ms">
+          <div class="s-step">
+            <div class="s-step-num" style="background:#F4EFE4;color:#1A1208;">04</div>
+            <div>
+              <div class="s-step-title">Your city delivers</div>
+              <div class="s-step-desc">Vendors manage orders live. Friends coordinate in temporary group chats. You just pitch up — everything has been handled.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="s-demo-wrap">
+        <div class="stamp-wrap" style="--sd:200ms">
+          <div class="s-demo">
+            <div class="s-demo-header">
+              <div class="s-demo-dots"><span></span><span></span><span></span></div>
+              <div class="s-demo-title">Sasa Agent · Session Live</div>
+              <div class="s-demo-status"><span class="dot dot--sm dot--cream" style="background:var(--forest);"></span>Active</div>
+            </div>
+            <div class="s-demo-body" id="demoBody">
+              <div class="s-msg s-msg--user">
+                <div class="s-msg-av s-msg-av--user">You</div>
+                <div class="s-msg-bubble">What should I do after work tonight near the CBD?</div>
+              </div>
+              <div class="s-msg s-msg--agent">
+                <div class="s-msg-av s-msg-av--host">N</div>
+                <div class="s-msg-bubble">I'm picking up 3 signals near you right now — rooftop jazz at 8, a supper club with 5 spots, and a flash deal at City Bottle ending at 7:30. Want me to build a plan?</div>
+              </div>
+              <div class="s-msg s-msg--user">
+                <div class="s-msg-av s-msg-av--user">You</div>
+                <div class="s-msg-bubble">Yes — supper club then jazz</div>
+              </div>
+              <div class="s-msg s-msg--agent">
+                <div class="s-msg-av s-msg-av--host">N</div>
+                <div class="s-msg-bubble">Done. Spot held in the supper club, RSVP sent for the rooftop. Added drinks from City Bottle before the deal expires. Total: $28. Confirm?<span class="cursor"></span></div>
+              </div>
+              <div class="s-demo-actions">
+                <button class="s-demo-action">Confirm order</button>
+                <button class="s-demo-action">Invite friends</button>
+                <button class="s-demo-action">See more nearby</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PRICING ── -->
+<section class="s-section" id="pricing">
+  <div class="s-inner">
+    <div class="stamp-wrap"><div class="s-eyebrow">Pricing</div></div>
+    <div class="stamp-wrap" style="--sd:60ms"><h2 class="s-section-title">Start free.<br><em class="s-em">Scale up.</em></h2></div>
+    <div class="stamp-wrap" style="--sd:120ms"><p class="s-section-sub">No credit card. No commitment. Just your city.</p></div>
+    <div class="s-tiers">
+      <div class="stamp-wrap" style="--sd:0ms">
+        <div class="s-tier">
+          <div class="s-tier-top">
+            <div class="s-tier-name">Explorer</div>
+            <div class="s-tier-price">Free<span class="s-tier-period"> forever</span></div>
+            <div class="s-tier-tagline">Discover your city for free</div>
+          </div>
+          <div class="s-tier-div"></div>
+          <div class="s-tier-features">
+            <div class="s-tier-feat"><span class="s-tier-check">✓</span>Live show & signal feed</div>
+            <div class="s-tier-feat"><span class="s-tier-check">✓</span>Agent (20 queries/month)</div>
+            <div class="s-tier-feat"><span class="s-tier-check">✓</span>Live map & venue discovery</div>
+            <div class="s-tier-feat"><span class="s-tier-check">✓</span>Create & join social events</div>
+            <div class="s-tier-feat"><span class="s-tier-check">✓</span>Community chats access</div>
+            <div class="s-tier-feat"><span class="s-tier-check">✓</span>Deal & special alerts</div>
+          </div>
+          <button class="btn btn--block btn--outline-tier">Start Listening</button>
+        </div>
+      </div>
+      <div class="stamp-wrap" style="--sd:100ms">
+        <div class="s-tier s-tier--hot">
+          <div class="s-tier-badge">Most Popular</div>
+          <div class="s-tier-top">
+            <div class="s-tier-name">Vibe Pass</div>
+            <div class="s-tier-price">$6<span class="s-tier-period">/month</span></div>
+            <div class="s-tier-tagline">For the city's power listeners</div>
+          </div>
+          <div class="s-tier-div"></div>
+          <div class="s-tier-features">
+            <div class="s-tier-feat"><span class="s-tier-check">✓</span>Everything in Explorer</div>
+            <div class="s-tier-feat"><span class="s-tier-check">✓</span>Unlimited Agent queries</div>
+            <div class="s-tier-feat"><span class="s-tier-check">✓</span>Priority deal & event alerts</div>
+            <div class="s-tier-feat"><span class="s-tier-check">✓</span>Order history & favourites</div>
+            <div class="s-tier-feat"><span class="s-tier-check">✓</span>Early access to new features</div>
+            <div class="s-tier-feat"><span class="s-tier-check">✓</span>Verified community badge</div>
+          </div>
+          <button class="btn btn--block btn--primary">Get Vibe Pass</button>
+        </div>
+      </div>
+      <div class="stamp-wrap" style="--sd:200ms">
+        <div class="s-tier">
+          <div class="s-tier-top">
+            <div class="s-tier-name">Venue Plan</div>
+            <div class="s-tier-price">$59<span class="s-tier-period">/month</span></div>
+            <div class="s-tier-tagline">Get your venue on the show</div>
+          </div>
+          <div class="s-tier-div"></div>
+          <div class="s-tier-features">
+            <div class="s-tier-feat"><span class="s-tier-check">✓</span>Full venue or store profile</div>
+            <div class="s-tier-feat"><span class="s-tier-check">✓</span>Push signals & flash deals live</div>
+            <div class="s-tier-feat"><span class="s-tier-check">✓</span>Live order & stock management</div>
+            <div class="s-tier-feat"><span class="s-tier-check">✓</span>In-app payments & tracking</div>
+            <div class="s-tier-feat"><span class="s-tier-check">✓</span>Discovery placement on map</div>
+            <div class="s-tier-feat"><span class="s-tier-check">✓</span>Dedicated vendor support</div>
+          </div>
+          <button class="btn btn--block btn--outline-tier">List Your Venue</button>
+        </div>
+      </div>
+    </div>
+    <p class="s-pricing-note">All plans include 14-day money-back guarantee. Cancel any time.</p>
+  </div>
+</section>
+
+<!-- ── TESTIMONIALS ── -->
+<section class="s-section s-section--cream2">
+  <div class="s-inner">
+    <div class="stamp-wrap"><div class="s-eyebrow">From the community</div></div>
+    <div class="stamp-wrap" style="--sd:60ms"><h2 class="s-section-title">Your city is <em class="s-em">talking.</em></h2></div>
+    <div class="s-testimonials">
+      <div class="stamp-wrap" style="--sd:0ms">
+        <div class="s-testi">
+          <div class="s-testi-accent" style="background:#C94E1E;"></div>
+          <div class="s-testi-mark">"</div>
+          <p class="s-testi-text">I threw a last-minute dinner for 12 people. Nia was already talking about the spot before I even searched. RSVPed, ordered drinks from two blocks away, and sent invites — four minutes total.</p>
+          <div class="s-testi-author">
+            <div class="s-testi-av" style="background:#C94E1E;">B</div>
+            <div><div class="s-testi-name">Bwalya M.</div><div class="s-testi-role">Listener · Lusaka</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="stamp-wrap" style="--sd:100ms">
+        <div class="s-testi">
+          <div class="s-testi-accent" style="background:#2D6A4F;"></div>
+          <div class="s-testi-mark">"</div>
+          <p class="s-testi-text">Within a week of listing, Nia mentioned our evening special on air and we got six new orders that night. Our regulars now order ahead and strangers find us through the live map.</p>
+          <div class="s-testi-author">
+            <div class="s-testi-av" style="background:#2D6A4F;">T</div>
+            <div><div class="s-testi-name">Thandiwe N.</div><div class="s-testi-role">Owner, The Corner Deli</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="stamp-wrap" style="--sd:200ms">
+        <div class="s-testi">
+          <div class="s-testi-accent" style="background:#C94E1E;"></div>
+          <div class="s-testi-mark">"</div>
+          <p class="s-testi-text">I started a monthly supper club through Sasa. People RSVP from the show, the agent helps them order from vendors nearby, and we all show up with food. The community element is genuinely different.</p>
+          <div class="s-testi-author">
+            <div class="s-testi-av" style="background:#C94E1E;">C</div>
+            <div><div class="s-testi-name">Chilufya M.</div><div class="s-testi-role">Community Host · Lusaka</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<section class="s-cta">
+  <div class="s-cta-shape-1"></div>
+  <div class="s-cta-shape-2"></div>
+  <div class="noise"></div>
+  <div class="s-cta-inner">
+    <div class="stamp-wrap"><div class="s-eyebrow s-eyebrow--faint">Ready?</div></div>
+    <div class="stamp-wrap" style="--sd:60ms">
+      <h2 class="s-cta-title">Your city is <em class="s-em s-em--yellow">live.</em><br>Are you?</h2>
+    </div>
+    <div class="stamp-wrap" style="--sd:120ms">
+      <p class="s-cta-sub">Join 2,400 people already listening, ordering, and connecting in their city.</p>
+    </div>
+    <div class="stamp-wrap" style="--sd:180ms">
+      <div class="s-cta-btns">
+        <button class="btn btn--cta-white">▶ Start Listening Free →</button>
+        <button class="btn btn--cta-outline">List Your Venue</button>
+      </div>
+    </div>
+    <div class="stamp-wrap" style="--sd:240ms">
+      <div class="s-cta-trust">
+        <span>✓ No credit card</span>
+        <span>✓ Cancel any time</span>
+        <span>✓ Free forever tier</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer class="s-footer">
+  <div class="s-footer-top">
+    <div>
+      <div class="s-footer-logo"><span class="s-logo-mark" style="color:var(--rust);font-size:18px;animation:risoP 2s infinite;">◉</span>Sasa</div>
+      <p class="s-footer-desc">The live, local voice of what's happening right now. Hear what's happening. Decide faster.</p>
+      <div class="s-footer-socials">
+        <a href="#" class="s-footer-soc">Twitter</a>
+        <a href="#" class="s-footer-soc">Instagram</a>
+        <a href="#" class="s-footer-soc">LinkedIn</a>
+      </div>
+    </div>
+    <div>
+      <div class="s-footer-col-title">Product</div>
+      <a href="#" class="s-footer-link">Sasa Live</a>
+      <a href="#" class="s-footer-link">Agent</a>
+      <a href="#" class="s-footer-link">Live Map</a>
+      <a href="#" class="s-footer-link">Events</a>
+      <a href="#" class="s-footer-link">Commerce</a>
+    </div>
+    <div>
+      <div class="s-footer-col-title">For Vendors</div>
+      <a href="#" class="s-footer-link">List Your Venue</a>
+      <a href="#" class="s-footer-link">Pricing</a>
+      <a href="#" class="s-footer-link">Payments</a>
+      <a href="#" class="s-footer-link">Analytics</a>
+      <a href="#" class="s-footer-link">Vendor API</a>
+    </div>
+    <div>
+      <div class="s-footer-col-title">Company</div>
+      <a href="#" class="s-footer-link">About</a>
+      <a href="#" class="s-footer-link">Blog</a>
+      <a href="#" class="s-footer-link">Careers</a>
+      <a href="#" class="s-footer-link">Privacy</a>
+      <a href="#" class="s-footer-link">Terms</a>
+    </div>
+  </div>
+  <div class="s-footer-bottom">
+    <span>© 2026 Sasa Ltd.</span>
+    <span>Made with ✦ for cities everywhere</span>
+  </div>
+</footer>
+
+<script>
+// Nav scroll
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('s-nav--up', window.scrollY > 60);
+}, { passive: true });
+
+// Stamp reveal
+const stamps = document.querySelectorAll('.stamp-wrap');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('stamp-wrap--on'); obs.unobserve(e.target); } });
+}, { threshold: 0.12 });
+stamps.forEach(el => obs.observe(el));
+
+// Feature tabs
+const featBtns   = document.querySelectorAll('.s-feat-btn');
+const featPanels = document.querySelectorAll('.s-feat-detail');
+featBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const i = btn.dataset.feat;
+    featBtns.forEach(b => b.classList.remove('s-feat-btn--on'));
+    featPanels.forEach(p => p.classList.remove('s-feat-detail--on'));
+    btn.classList.add('s-feat-btn--on');
+    featPanels[i].classList.add('s-feat-detail--on');
+  });
+});
+
+// Waveform randomize
+document.querySelectorAll('.s-wave-bar').forEach(b => {
+  b.style.animationDelay = (Math.random() * 0.8) + 's';
+});
+</script>
+
+</body>
+</html>
